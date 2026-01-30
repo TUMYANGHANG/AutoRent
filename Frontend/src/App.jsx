@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import FAQ from "./component/FAQ.jsx";
 import Footer from "./component/Footer.jsx";
 import ForgotPasswordModal from "./component/ForgotPasswordModal.jsx";
@@ -14,9 +14,11 @@ import Services from "./pages/Services.jsx";
 import TermsOfService from "./pages/TermsOfService.jsx";
 import { getAuthToken, removeAuthToken } from "./utils/api.js";
 
-const App = () => {
+const AppContent = () => {
+  const location = useLocation();
   const [openModal, setOpenModal] = useState(null); // 'login', 'signup', 'forgotPassword', or null
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const isDashboard = location.pathname === "/dashboard";
 
   // Check authentication status on mount
   useEffect(() => {
@@ -39,13 +41,15 @@ const App = () => {
   };
 
   return (
-    <BrowserRouter>
-      <Navbar
-        isAuthenticated={isAuthenticated}
-        onOpenLogin={() => setOpenModal("login")}
-        onOpenSignUp={() => setOpenModal("signup")}
-        onLogout={handleLogout}
-      />
+    <>
+      {!isDashboard && (
+        <Navbar
+          isAuthenticated={isAuthenticated}
+          onOpenLogin={() => setOpenModal("login")}
+          onOpenSignUp={() => setOpenModal("signup")}
+          onLogout={handleLogout}
+        />
+      )}
 
       <LoginModal
         isOpen={openModal === "login"}
@@ -77,9 +81,15 @@ const App = () => {
         <Route path="/dashboard" element={<Dashboard />} />
       </Routes>
 
-      <Footer />
-    </BrowserRouter>
+      {!isDashboard && <Footer />}
+    </>
   );
 };
+
+const App = () => (
+  <BrowserRouter>
+    <AppContent />
+  </BrowserRouter>
+);
 
 export default App;

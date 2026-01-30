@@ -8,7 +8,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useEffect, useMemo, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 const PlaceholderLogo = () => {
   // Inline SVG placeholder so we don't depend on any asset files yet
@@ -48,6 +48,7 @@ const Navbar = ({ isAuthenticated, onOpenLogin, onOpenSignUp, onLogout }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const [active, setActive] = useState("Home");
 
   useEffect(() => {
@@ -190,6 +191,7 @@ const Navbar = ({ isAuthenticated, onOpenLogin, onOpenSignUp, onLogout }) => {
                 >
                   <button
                     type="button"
+                    onClick={() => navigate("/dashboard")}
                     className="relative flex h-12 w-12 cursor-pointer items-center justify-center rounded-full bg-white/5 text-white/80 ring-1 ring-white/10 transition-all duration-300 hover:scale-110 hover:bg-white/10 hover:text-white hover:ring-white/20"
                     aria-label="Profile"
                   >
@@ -201,7 +203,7 @@ const Navbar = ({ isAuthenticated, onOpenLogin, onOpenSignUp, onLogout }) => {
 
                   {/* Profile Dropdown */}
                   <div
-                    className={`absolute right-0 top-full mt-3 w-48 rounded-2xl border border-white/10 bg-black/85 p-2 shadow-[0_20px_60px_rgba(0,0,0,0.6)] backdrop-blur-xl transition ${
+                    className={`absolute right-0 top-full mt-1 w-48 rounded-2xl border border-white/10 bg-black/85 p-2 shadow-[0_20px_60px_rgba(0,0,0,0.6)] backdrop-blur-xl transition z-50 ${
                       profileDropdownOpen
                         ? "visible translate-y-0 opacity-100"
                         : "invisible translate-y-1 opacity-0"

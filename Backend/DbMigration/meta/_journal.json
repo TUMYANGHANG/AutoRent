@@ -15,6 +15,13 @@
       "when": 1768153837746,
       "tag": "0001_dry_red_hulk",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1769705570622,
+      "tag": "0002_cold_night_nurse",
+      "breakpoints": true
     }
   ]
 }

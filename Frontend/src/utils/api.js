@@ -148,6 +148,71 @@ export const userDetailsAPI = {
   },
 };
 
+// Vehicle API (owner only)
+export const vehicleAPI = {
+  addVehicle: async (vehicleData) => {
+    return apiRequest("/vehicles", {
+      method: "POST",
+      body: JSON.stringify(vehicleData),
+    });
+  },
+
+  /** Upload image files to Cloudinary via backend. Returns { urls: string[] }. */
+  uploadImages: async (files) => {
+    const token = localStorage.getItem("token");
+    if (!token) throw new Error("Access token required");
+    const formData = new FormData();
+    for (let i = 0; i < files.length; i++) {
+      formData.append("images", files[i]);
+    }
+    const url = `${API_BASE_URL}/upload/images`;
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      if (data.errors && Array.isArray(data.errors)) throw new Error(data.errors.join(", "));
+      throw new Error(data.message || "Upload failed");
+    }
+    return data;
+  },
+
+  getMyVehicles: async () => {
+    return apiRequest("/vehicles", { method: "GET" });
+  },
+
+  getVehicleById: async (vehicleId) => {
+    return apiRequest(`/vehicles/${vehicleId}`, { method: "GET" });
+  },
+
+  addVehicleImages: async (vehicleId, imageUrls) => {
+    return apiRequest(`/vehicles/${vehicleId}/images`, {
+      method: "POST",
+      body: JSON.stringify({ imageUrls }),
+    });
+  },
+};
+
+// Admin API (admin only)
+export const adminAPI = {
+  getAllVehicles: async () => {
+    return apiRequest("/admin/vehicles", { method: "GET" });
+  },
+
+  getVehicleById: async (vehicleId) => {
+    return apiRequest(`/admin/vehicles/${vehicleId}`, { method: "GET" });
+  },
+
+  updateVehicleVerify: async (vehicleId, isVerified) => {
+    return apiRequest(`/admin/vehicles/${vehicleId}/verify`, {
+      method: "PATCH",
+      body: JSON.stringify({ isVerified }),
+    });
+  },
+};
+
 // Token management
 export const setAuthToken = (token) => {
   if (token) {

@@ -32,7 +32,7 @@ const PlaceholderLogo = () => {
   );
 };
 
-const OwnerNavbar = ({ user, onLogout }) => {
+const OwnerNavbar = ({ user, onLogout, pageTitle }) => {
   const [profileOpen, setProfileOpen] = useState(false);
 
   const displayName =
@@ -44,7 +44,7 @@ const OwnerNavbar = ({ user, onLogout }) => {
     <header className="sticky top-0 z-50 w-full">
       <div className="w-full border-b border-slate-200 bg-white shadow-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <div className="flex h-20 items-center justify-between gap-4">
+          <div className="relative flex h-20 items-center justify-between gap-4">
             {/* Brand */}
             <Link
               to="/dashboard"
@@ -62,6 +62,11 @@ const OwnerNavbar = ({ user, onLogout }) => {
                 </div>
               </div>
             </Link>
+
+            {/* Center: current page title */}
+            <h1 className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-lg font-semibold text-slate-800 sm:text-xl">
+              {pageTitle || "Dashboard"}
+            </h1>
 
             {/* Right: profile + logout (no nav menu) */}
             <div className="ml-auto flex shrink-0 items-center gap-3">

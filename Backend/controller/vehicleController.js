@@ -1,10 +1,61 @@
 import {
   addVehicleImages,
   createVehicle,
+  deleteVehicle,
   getVehicleById,
+  getPublicVehicleById,
+  getPublicVehicles,
   getVehiclesByOwnerId,
+  updateVehicle,
   vehicleBelongsToOwner,
 } from "../services/vehicleService.js";
+
+/**
+ * Get vehicles available for rent (public, no auth)
+ */
+const getPublicVehiclesController = async (req, res) => {
+  try {
+    const vehicles = await getPublicVehicles();
+    res.status(200).json({
+      success: true,
+      data: vehicles,
+    });
+  } catch (error) {
+    console.error("Get public vehicles error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Get a single vehicle by ID for rent (public, no auth). Only verified + available.
+ */
+const getPublicVehicleByIdController = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const vehicle = await getPublicVehicleById(id);
+    if (!vehicle) {
+      return res.status(404).json({
+        success: false,
+        message: "Vehicle not found or not available for rent",
+      });
+    }
+    res.status(200).json({
+      success: true,
+      data: vehicle,
+    });
+  } catch (error) {
+    console.error("Get public vehicle by ID error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
 
 /**
  * Add vehicle (owner only)
@@ -23,16 +74,23 @@ const addVehicleController = async (req, res) => {
     const vehicle = await createVehicle(
       userId,
       {
-        make: req.body.make,
+        brand: req.body.brand,
         model: req.body.model,
-        year: req.body.year,
-        licensePlate: req.body.licensePlate,
+        vehicleType: req.body.vehicleType,
+        manufactureYear: req.body.manufactureYear,
         color: req.body.color,
-        dailyRate: req.body.dailyRate,
+        fuelType: req.body.fuelType,
+        transmission: req.body.transmission,
+        seatingCapacity: req.body.seatingCapacity,
+        airbags: req.body.airbags,
+        pricePerDay: req.body.pricePerDay,
+        securityDeposit: req.body.securityDeposit,
+        lateFeePerHour: req.body.lateFeePerHour,
         status: req.body.status,
         description: req.body.description,
       },
-      req.body.imageUrls ?? []
+      req.body.imageUrls ?? [],
+      req.body.documentUrls ?? []
     );
 
     if (!vehicle) {
@@ -49,6 +107,12 @@ const addVehicleController = async (req, res) => {
     });
   } catch (error) {
     console.error("Add vehicle error:", error);
+    if (error.code === "DOCUMENTS_REQUIRED") {
+      return res.status(400).json({
+        success: false,
+        message: "At least one vehicle document image is required for admin verification",
+      });
+    }
     if (error.code === "23505") {
       return res.status(409).json({
         success: false,
@@ -186,9 +250,96 @@ const addVehicleImagesController = async (req, res) => {
   }
 };
 
+/**
+ * Update vehicle details (owner only; isVerified cannot be changed)
+ */
+const updateVehicleController = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { role, userId } = req.user;
+
+    if (role !== "owner") {
+      return res.status(403).json({
+        success: false,
+        message: "Only owners can update their vehicles",
+      });
+    }
+
+    const vehicle = await updateVehicle(id, userId, req.body);
+
+    if (!vehicle) {
+      return res.status(404).json({
+        success: false,
+        message: "Vehicle not found or you do not own it",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Vehicle updated successfully",
+      data: vehicle,
+    });
+  } catch (error) {
+    console.error("Update vehicle error:", error);
+    if (error.code === "23505") {
+      return res.status(409).json({
+        success: false,
+        message: "A vehicle with this license plate already exists",
+      });
+    }
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
+
+/**
+ * Delete vehicle (owner only, own vehicle)
+ */
+const deleteVehicleController = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { role, userId } = req.user;
+
+    if (role !== "owner") {
+      return res.status(403).json({
+        success: false,
+        message: "Only owners can delete their vehicles",
+      });
+    }
+
+    const deleted = await deleteVehicle(id, userId);
+
+    if (!deleted) {
+      return res.status(404).json({
+        success: false,
+        message: "Vehicle not found or you do not own it",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Vehicle deleted successfully",
+    });
+  } catch (error) {
+    console.error("Delete vehicle error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
+
 export {
   addVehicleController,
   addVehicleImagesController,
+  deleteVehicleController,
   getMyVehiclesController,
+  getPublicVehiclesController,
+  getPublicVehicleByIdController,
   getVehicleByIdController,
+  updateVehicleController,
 };

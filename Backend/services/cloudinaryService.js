@@ -35,4 +35,27 @@ const uploadImage = async (buffer, mimetype, folder = "autorent/vehicles") => {
   return result.secure_url;
 };
 
-export { uploadImage };
+/**
+ * Upload a document (e.g. PDF) to Cloudinary as raw file
+ * @param {Buffer} buffer - File buffer
+ * @param {string} mimetype - MIME type (e.g. application/pdf)
+ * @param {string} [folder] - Optional folder (e.g. "autorent/vehicles/documents")
+ * @returns {Promise<string>} - Secure URL of the uploaded file
+ */
+const uploadDocument = async (buffer, mimetype, folder = "autorent/vehicles/documents") => {
+  if (!cloudName || !apiKey || !apiSecret) {
+    throw new Error("Cloudinary is not configured (missing cloudname, cloudkey, or cloudsecret)");
+  }
+
+  const base64 = buffer.toString("base64");
+  const dataUri = `data:${mimetype};base64,${base64}`;
+
+  const result = await cloudinary.uploader.upload(dataUri, {
+    folder,
+    resource_type: "raw",
+  });
+
+  return result.secure_url;
+};
+
+export { uploadImage, uploadDocument };

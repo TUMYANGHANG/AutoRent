@@ -73,6 +73,31 @@ const verifyOTP = async (email, otpCode) => {
 };
 
 /**
+ * Validate OTP without clearing (e.g. for forgot-password step before reset).
+ * @param {string} email - User's email address
+ * @param {string} otpCode - OTP code to validate
+ * @returns {Promise<boolean>} - True if OTP is valid and not expired
+ */
+const validateOTP = async (email, otpCode) => {
+  const [user] = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1);
+
+  if (!user || !user.otp || !user.otpExpiresAt) {
+    return false;
+  }
+  if (user.otp !== otpCode) {
+    return false;
+  }
+  if (new Date(user.otpExpiresAt) < new Date()) {
+    return false;
+  }
+  return true;
+};
+
+/**
  * Check if user has a valid unused OTP
  * @param {string} email - User's email address
  * @returns {Promise<boolean>} - True if valid OTP exists
@@ -92,6 +117,6 @@ const hasValidOTP = async (email) => {
 };
 
 export {
-  createOTP, generateOTP, hasValidOTP, verifyOTP
+  createOTP, generateOTP, hasValidOTP, validateOTP, verifyOTP
 };
 

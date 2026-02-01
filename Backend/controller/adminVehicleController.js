@@ -17,7 +17,8 @@ const getAllVehiclesController = async (req, res) => {
       });
     }
 
-    const vehicles = await getAllVehicles();
+    const ownerId = req.query.ownerId || null;
+    const vehicles = await getAllVehicles(ownerId);
     res.status(200).json({
       success: true,
       data: vehicles,
@@ -28,11 +29,6 @@ const getAllVehiclesController = async (req, res) => {
       success: false,
       message: "Internal server error",
       error: process.env.NODE_ENV === "development" ? error.message : undefined,
-      hint:
-        process.env.NODE_ENV === "development" &&
-        /column.*does not exist/i.test(error.message)
-          ? "Run migrations: node scripts/run-extra-migrations.js"
-          : undefined,
     });
   }
 };

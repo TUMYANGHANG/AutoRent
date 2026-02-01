@@ -1,72 +1,57 @@
-import { faFileAlt, faImage, faPlus, faTrash } from "@fortawesome/free-solid-svg-icons";
+import { faCheckCircle, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { vehicleAPI } from "../../utils/api.js";
-
-const INITIAL_FORM = {
-  brand: "",
-  model: "",
-  vehicleType: "",
-  manufactureYear: "",
-  color: "",
-  fuelType: "",
-  transmission: "",
-  seatingCapacity: "",
-  airbags: "",
-  pricePerDay: "",
-  securityDeposit: "",
-  lateFeePerHour: "",
-  description: "",
-};
-
-const ACCEPTED_IMAGE_TYPES = "image/jpeg,image/png,image/webp,image/gif";
-const MAX_IMAGES = 10;
-const MAX_FILE_SIZE_MB = 5;
-
-const ACCEPTED_DOC_TYPES = "application/pdf,image/jpeg,image/png,image/webp";
-const MAX_DOCUMENTS = 10;
-const MAX_DOC_SIZE_MB = 10;
 
 const VEHICLE_TYPES = ["Sedan", "SUV", "Hatchback", "Coupe", "Van", "Pickup", "Other"];
 const FUEL_TYPES = ["Petrol", "Diesel", "Electric", "Hybrid", "CNG", "Other"];
 const TRANSMISSIONS = ["Manual", "Automatic", "Semi-Auto"];
 
-const AddVehicleForm = ({ onSuccess, onCancel }) => {
-  const [form, setForm] = useState(INITIAL_FORM);
-  const [imageFiles, setImageFiles] = useState([]);
-  const [documentFiles, setDocumentFiles] = useState([]);
+const EditVehicleForm = ({ vehicle, onSuccess, onCancel }) => {
+  const [form, setForm] = useState({
+    brand: "",
+    model: "",
+    vehicleType: "",
+    manufactureYear: "",
+    color: "",
+    fuelType: "",
+    transmission: "",
+    seatingCapacity: "",
+    airbags: "",
+    pricePerDay: "",
+    securityDeposit: "",
+    lateFeePerHour: "",
+    description: "",
+    status: "available",
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    if (vehicle) {
+      setForm({
+        brand: vehicle.brand ?? "",
+        model: vehicle.model ?? "",
+        vehicleType: vehicle.vehicleType ?? "",
+        manufactureYear: vehicle.manufactureYear ?? "",
+        color: vehicle.color ?? "",
+        fuelType: vehicle.fuelType ?? "",
+        transmission: vehicle.transmission ?? "",
+        seatingCapacity: vehicle.seatingCapacity ?? "",
+        airbags: vehicle.airbags ?? "",
+        pricePerDay: vehicle.pricePerDay ?? "",
+        securityDeposit: vehicle.securityDeposit ?? "",
+        lateFeePerHour: vehicle.lateFeePerHour ?? "",
+        description: vehicle.description ?? "",
+        status: vehicle.status ?? "available",
+      });
+    }
+  }, [vehicle]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
     setError("");
-  };
-
-  const handleImageFilesChange = (e) => {
-    const files = Array.from(e.target.files || []);
-    const valid = files.filter((f) => f.size <= MAX_FILE_SIZE_MB * 1024 * 1024);
-    setImageFiles((prev) => [...prev, ...valid].slice(0, MAX_IMAGES));
-    setError("");
-    e.target.value = "";
-  };
-
-  const removeImageFile = (index) => {
-    setImageFiles((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleDocumentFilesChange = (e) => {
-    const files = Array.from(e.target.files || []);
-    const valid = files.filter((f) => f.size <= MAX_DOC_SIZE_MB * 1024 * 1024);
-    setDocumentFiles((prev) => [...prev, ...valid].slice(0, MAX_DOCUMENTS));
-    setError("");
-    e.target.value = "";
-  };
-
-  const removeDocumentFile = (index) => {
-    setDocumentFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e) => {
@@ -96,21 +81,9 @@ const AddVehicleForm = ({ onSuccess, onCancel }) => {
       setError("Price per day must be a positive number.");
       return;
     }
-    if (documentFiles.length === 0) {
-      setError("At least one vehicle document image is required for admin verification.");
-      return;
-    }
 
     setLoading(true);
     try {
-      let imageUrls = [];
-      if (imageFiles.length > 0) {
-        const uploadRes = await vehicleAPI.uploadImages(imageFiles);
-        imageUrls = uploadRes.data?.urls ?? [];
-      }
-      const docRes = await vehicleAPI.uploadDocuments(documentFiles);
-      const documentUrls = docRes.data?.urls ?? [];
-
       const payload = {
         brand: form.brand.trim(),
         model: form.model.trim(),
@@ -125,71 +98,49 @@ const AddVehicleForm = ({ onSuccess, onCancel }) => {
         securityDeposit: securityDeposit ?? undefined,
         lateFeePerHour: lateFeePerHour ?? undefined,
         description: form.description?.trim() || undefined,
-        imageUrls,
-        documentUrls,
+        status: form.status,
       };
 
-      const res = await vehicleAPI.addVehicle(payload);
-      setSuccess(true);
-      setForm(INITIAL_FORM);
-      setImageFiles([]);
-      setDocumentFiles([]);
+      const res = await vehicleAPI.updateVehicle(vehicle.id, payload);
       if (onSuccess) onSuccess(res.data);
     } catch (err) {
-      setError(err.message || "Failed to add vehicle.");
+      setError(err.message || "Failed to update vehicle.");
     } finally {
       setLoading(false);
     }
   };
 
-  if (success) {
-    return (
-      <div className="rounded-2xl border border-green-200 bg-green-50 p-8 text-center">
-        <p className="text-lg font-semibold text-green-800">
-          Vehicle added successfully!
-        </p>
-        <p className="mt-2 text-green-700">
-          You can add another vehicle or go back to your dashboard.
-        </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-3">
-          <button
-            type="button"
-            onClick={() => setSuccess(false)}
-            className="rounded-xl bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-orange-600"
-          >
-            Add another vehicle
-          </button>
-          {onCancel && (
-            <button
-              type="button"
-              onClick={onCancel}
-              className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-            >
-              Back to dashboard
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  }
+  if (!vehicle) return null;
+
+  const isVerified = vehicle.isVerified === true;
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-      <h2 className="mb-6 text-2xl font-bold text-slate-900">Add New Vehicle</h2>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-2xl font-bold text-slate-900">Edit Vehicle</h2>
+        <span
+          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium ${
+            isVerified ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800"
+          }`}
+          title={isVerified ? "Verified by admin (read-only)" : "Pending admin verification"}
+        >
+          <FontAwesomeIcon icon={isVerified ? faCheckCircle : faTimesCircle} className="h-4 w-4" />
+          {isVerified ? "Verified" : "Pending verification"}
+        </span>
+      </div>
+
       <form onSubmit={handleSubmit} className="space-y-6">
         {error && (
-          <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
-            {error}
-          </div>
+          <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
         )}
 
         <div className="grid gap-6 sm:grid-cols-2">
           <div>
-            <label htmlFor="brand" className="mb-1.5 block text-sm font-medium text-slate-700">
+            <label htmlFor="edit-brand" className="mb-1.5 block text-sm font-medium text-slate-700">
               Brand <span className="text-red-500">*</span>
             </label>
             <input
-              id="brand"
+              id="edit-brand"
               name="brand"
               type="text"
               value={form.brand}
@@ -200,11 +151,11 @@ const AddVehicleForm = ({ onSuccess, onCancel }) => {
             />
           </div>
           <div>
-            <label htmlFor="model" className="mb-1.5 block text-sm font-medium text-slate-700">
+            <label htmlFor="edit-model" className="mb-1.5 block text-sm font-medium text-slate-700">
               Model <span className="text-red-500">*</span>
             </label>
             <input
-              id="model"
+              id="edit-model"
               name="model"
               type="text"
               value={form.model}
@@ -218,11 +169,11 @@ const AddVehicleForm = ({ onSuccess, onCancel }) => {
 
         <div className="grid gap-6 sm:grid-cols-2">
           <div>
-            <label htmlFor="vehicleType" className="mb-1.5 block text-sm font-medium text-slate-700">
+            <label htmlFor="edit-vehicleType" className="mb-1.5 block text-sm font-medium text-slate-700">
               Vehicle type
             </label>
             <select
-              id="vehicleType"
+              id="edit-vehicleType"
               name="vehicleType"
               value={form.vehicleType}
               onChange={handleChange}
@@ -235,11 +186,11 @@ const AddVehicleForm = ({ onSuccess, onCancel }) => {
             </select>
           </div>
           <div>
-            <label htmlFor="manufactureYear" className="mb-1.5 block text-sm font-medium text-slate-700">
+            <label htmlFor="edit-manufactureYear" className="mb-1.5 block text-sm font-medium text-slate-700">
               Manufacture year <span className="text-red-500">*</span>
             </label>
             <input
-              id="manufactureYear"
+              id="edit-manufactureYear"
               name="manufactureYear"
               type="number"
               min="1900"
@@ -254,11 +205,11 @@ const AddVehicleForm = ({ onSuccess, onCancel }) => {
 
         <div className="grid gap-6 sm:grid-cols-2">
           <div>
-            <label htmlFor="color" className="mb-1.5 block text-sm font-medium text-slate-700">
+            <label htmlFor="edit-color" className="mb-1.5 block text-sm font-medium text-slate-700">
               Color
             </label>
             <input
-              id="color"
+              id="edit-color"
               name="color"
               type="text"
               value={form.color}
@@ -269,11 +220,11 @@ const AddVehicleForm = ({ onSuccess, onCancel }) => {
             />
           </div>
           <div>
-            <label htmlFor="fuelType" className="mb-1.5 block text-sm font-medium text-slate-700">
+            <label htmlFor="edit-fuelType" className="mb-1.5 block text-sm font-medium text-slate-700">
               Fuel type
             </label>
             <select
-              id="fuelType"
+              id="edit-fuelType"
               name="fuelType"
               value={form.fuelType}
               onChange={handleChange}
@@ -289,11 +240,11 @@ const AddVehicleForm = ({ onSuccess, onCancel }) => {
 
         <div className="grid gap-6 sm:grid-cols-2">
           <div>
-            <label htmlFor="transmission" className="mb-1.5 block text-sm font-medium text-slate-700">
+            <label htmlFor="edit-transmission" className="mb-1.5 block text-sm font-medium text-slate-700">
               Transmission
             </label>
             <select
-              id="transmission"
+              id="edit-transmission"
               name="transmission"
               value={form.transmission}
               onChange={handleChange}
@@ -307,11 +258,11 @@ const AddVehicleForm = ({ onSuccess, onCancel }) => {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="seatingCapacity" className="mb-1.5 block text-sm font-medium text-slate-700">
+              <label htmlFor="edit-seatingCapacity" className="mb-1.5 block text-sm font-medium text-slate-700">
                 Seating capacity
               </label>
               <input
-                id="seatingCapacity"
+                id="edit-seatingCapacity"
                 name="seatingCapacity"
                 type="number"
                 min="0"
@@ -322,11 +273,11 @@ const AddVehicleForm = ({ onSuccess, onCancel }) => {
               />
             </div>
             <div>
-              <label htmlFor="airbags" className="mb-1.5 block text-sm font-medium text-slate-700">
+              <label htmlFor="edit-airbags" className="mb-1.5 block text-sm font-medium text-slate-700">
                 Airbags
               </label>
               <input
-                id="airbags"
+                id="edit-airbags"
                 name="airbags"
                 type="number"
                 min="0"
@@ -341,11 +292,11 @@ const AddVehicleForm = ({ onSuccess, onCancel }) => {
 
         <div className="grid gap-6 sm:grid-cols-3">
           <div>
-            <label htmlFor="pricePerDay" className="mb-1.5 block text-sm font-medium text-slate-700">
+            <label htmlFor="edit-pricePerDay" className="mb-1.5 block text-sm font-medium text-slate-700">
               Price per day (NRP) <span className="text-red-500">*</span>
             </label>
             <input
-              id="pricePerDay"
+              id="edit-pricePerDay"
               name="pricePerDay"
               type="number"
               min="0"
@@ -357,11 +308,11 @@ const AddVehicleForm = ({ onSuccess, onCancel }) => {
             />
           </div>
           <div>
-            <label htmlFor="securityDeposit" className="mb-1.5 block text-sm font-medium text-slate-700">
+            <label htmlFor="edit-securityDeposit" className="mb-1.5 block text-sm font-medium text-slate-700">
               Security deposit (NRP)
             </label>
             <input
-              id="securityDeposit"
+              id="edit-securityDeposit"
               name="securityDeposit"
               type="number"
               min="0"
@@ -373,11 +324,11 @@ const AddVehicleForm = ({ onSuccess, onCancel }) => {
             />
           </div>
           <div>
-            <label htmlFor="lateFeePerHour" className="mb-1.5 block text-sm font-medium text-slate-700">
+            <label htmlFor="edit-lateFeePerHour" className="mb-1.5 block text-sm font-medium text-slate-700">
               Late fee per hour (NRP)
             </label>
             <input
-              id="lateFeePerHour"
+              id="edit-lateFeePerHour"
               name="lateFeePerHour"
               type="number"
               min="0"
@@ -391,11 +342,29 @@ const AddVehicleForm = ({ onSuccess, onCancel }) => {
         </div>
 
         <div>
-          <label htmlFor="description" className="mb-1.5 block text-sm font-medium text-slate-700">
+          <label htmlFor="edit-status" className="mb-1.5 block text-sm font-medium text-slate-700">
+            Status
+          </label>
+          <select
+            id="edit-status"
+            name="status"
+            value={form.status}
+            onChange={handleChange}
+            className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+          >
+            <option value="available">Available</option>
+            <option value="rented">Rented</option>
+            <option value="maintenance">Maintenance</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
+
+        <div>
+          <label htmlFor="edit-description" className="mb-1.5 block text-sm font-medium text-slate-700">
             Description
           </label>
           <textarea
-            id="description"
+            id="edit-description"
             name="description"
             value={form.description}
             onChange={handleChange}
@@ -405,88 +374,13 @@ const AddVehicleForm = ({ onSuccess, onCancel }) => {
           />
         </div>
 
-        <div>
-          <div className="mb-2 flex items-center justify-between">
-            <label className="block text-sm font-medium text-slate-700">
-              <FontAwesomeIcon icon={faImage} className="mr-2 h-4 w-4 text-slate-500" />
-              Vehicle images (optional, max {MAX_IMAGES}, {MAX_FILE_SIZE_MB}MB each)
-            </label>
-            <label className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
-              <FontAwesomeIcon icon={faPlus} className="h-4 w-4" />
-              Choose files
-              <input
-                type="file"
-                accept={ACCEPTED_IMAGE_TYPES}
-                multiple
-                onChange={handleImageFilesChange}
-                className="hidden"
-              />
-            </label>
-          </div>
-          {imageFiles.length > 0 && (
-            <div className="space-y-2">
-              {imageFiles.map((file, index) => (
-                <div
-                  key={`${file.name}-${index}`}
-                  className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"
-                >
-                  <span className="min-w-0 flex-1 truncate text-sm text-slate-700">{file.name}</span>
-                  <span className="text-xs text-slate-500">({(file.size / 1024).toFixed(1)} KB)</span>
-                  <button type="button" onClick={() => removeImageFile(index)} className="rounded-lg p-1.5 text-slate-500 transition hover:bg-red-50 hover:text-red-600" aria-label="Remove">
-                    <FontAwesomeIcon icon={faTrash} className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div>
-          <div className="mb-2 flex items-center justify-between">
-            <label className="block text-sm font-medium text-slate-700">
-              <FontAwesomeIcon icon={faFileAlt} className="mr-2 h-4 w-4 text-slate-500" />
-              Vehicle document images <span className="text-red-500">*</span> (mandatory for admin verification, max {MAX_DOCUMENTS}, {MAX_DOC_SIZE_MB}MB each – PDF or images)
-            </label>
-            <label className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
-              <FontAwesomeIcon icon={faPlus} className="h-4 w-4" />
-              Choose files
-              <input
-                type="file"
-                accept={ACCEPTED_DOC_TYPES}
-                multiple
-                onChange={handleDocumentFilesChange}
-                className="hidden"
-              />
-            </label>
-          </div>
-          {documentFiles.length === 0 && (
-            <p className="text-sm text-amber-700">At least one document image is required.</p>
-          )}
-          {documentFiles.length > 0 && (
-            <div className="space-y-2">
-              {documentFiles.map((file, index) => (
-                <div
-                  key={`doc-${file.name}-${index}`}
-                  className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"
-                >
-                  <span className="min-w-0 flex-1 truncate text-sm text-slate-700">{file.name}</span>
-                  <span className="text-xs text-slate-500">({(file.size / 1024).toFixed(1)} KB)</span>
-                  <button type="button" onClick={() => removeDocumentFile(index)} className="rounded-lg p-1.5 text-slate-500 transition hover:bg-red-50 hover:text-red-600" aria-label="Remove document">
-                    <FontAwesomeIcon icon={faTrash} className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
         <div className="flex flex-wrap gap-3 border-t border-slate-200 pt-6">
           <button
             type="submit"
             disabled={loading}
             className="rounded-xl bg-orange-500 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-600 disabled:opacity-60"
           >
-            {loading ? "Adding..." : "Add vehicle"}
+            {loading ? "Updating..." : "Update vehicle"}
           </button>
           {onCancel && (
             <button
@@ -504,4 +398,4 @@ const AddVehicleForm = ({ onSuccess, onCancel }) => {
   );
 };
 
-export default AddVehicleForm;
+export default EditVehicleForm;

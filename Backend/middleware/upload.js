@@ -18,3 +18,20 @@ export const uploadImages = multer({
   fileFilter,
   limits: { fileSize: MAX_FILE_SIZE },
 }).array("images", 10);
+
+const DOC_MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB for documents
+const ALLOWED_DOC_MIMES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
+
+const docFileFilter = (req, file, cb) => {
+  if (ALLOWED_DOC_MIMES.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error(`Invalid file type. Allowed: PDF, JPEG, PNG, WebP`), false);
+  }
+};
+
+export const uploadDocuments = multer({
+  storage: multer.memoryStorage(),
+  fileFilter: docFileFilter,
+  limits: { fileSize: DOC_MAX_FILE_SIZE },
+}).array("documents", 5);

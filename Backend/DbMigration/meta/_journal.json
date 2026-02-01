@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1766854731951,
-      "tag": "0000_sturdy_lester",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1768153837746,
-      "tag": "0001_dry_red_hulk",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1769705570622,
-      "tag": "0002_cold_night_nurse",
+      "when": 1769850323840,
+      "tag": "0000_far_mole_man",
       "breakpoints": true
     }
   ]

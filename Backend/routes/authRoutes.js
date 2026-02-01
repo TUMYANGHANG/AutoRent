@@ -1,5 +1,13 @@
 import express from "express";
-import { login, register, resendOTP, verifyEmail } from "../controller/authController.js";
+import {
+  forgotPassword,
+  login,
+  register,
+  resendOTP,
+  resetPassword,
+  verifyEmail,
+  verifyOTPForReset,
+} from "../controller/authController.js";
 import {
   createUserDetailsController,
   getUserDetailsController,
@@ -7,7 +15,13 @@ import {
   verifyLicenseController
 } from "../controller/userDetailsController.js";
 import { authenticateToken } from "../middleware/auth.js";
-import { validateLogin, validateOTPVerification, validateRegistration } from "../middleware/validation.js";
+import {
+  validateForgotPassword,
+  validateLogin,
+  validateOTPVerification,
+  validateRegistration,
+  validateResetPassword,
+} from "../middleware/validation.js";
 
 const router = express.Router();
 
@@ -24,6 +38,15 @@ router.post("/auth/resend-otp", resendOTP);
 
 // Login user
 router.post("/auth/login", validateLogin, login);
+
+// Forgot password: send OTP to registered email
+router.post("/auth/forgot-password", validateForgotPassword, forgotPassword);
+
+// Verify OTP (for forgot password; does not clear OTP)
+router.post("/auth/verify-otp", validateOTPVerification, verifyOTPForReset);
+
+// Reset password: verify OTP (clears it) and set new password
+router.post("/auth/reset-password", validateResetPassword, resetPassword);
 
 // ==================== User Details Routes ====================
 

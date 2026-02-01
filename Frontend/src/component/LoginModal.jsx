@@ -42,11 +42,10 @@ const LoginModal = ({
         localStorage.setItem("user", JSON.stringify(response.user));
       }
 
-      // Call success callback
+      // Call success callback with response so parent can redirect by role
       if (onLoginSuccess) {
-        onLoginSuccess();
+        onLoginSuccess(response);
       } else {
-        // Fallback: close modal
         onClose();
       }
     } catch (err) {

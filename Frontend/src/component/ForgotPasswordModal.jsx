@@ -34,12 +34,26 @@ const ForgotPasswordModal = ({ isOpen, onClose, onSwitchToLogin }) => {
 
     try {
       await authAPI.sendOTP(email);
-      // On success, move to OTP step
       setStep("otp");
       setSuccess(`OTP has been sent to ${email}`);
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       setError(err.message || "Failed to send OTP. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendOTP = async (e) => {
+    e?.preventDefault?.();
+    setError("");
+    setIsLoading(true);
+    try {
+      await authAPI.sendOTP(email);
+      setSuccess("OTP resent to your email.");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      setError(err.message || "Failed to resend OTP.");
     } finally {
       setIsLoading(false);
     }
@@ -73,9 +87,13 @@ const ForgotPasswordModal = ({ isOpen, onClose, onSwitchToLogin }) => {
     e.preventDefault();
     setError("");
 
-    // Validation
+    // Validation (match backend: 8+ chars, 1 uppercase, 1 lowercase, 1 number)
     if (newPassword.length < 8) {
       setError("Password must be at least 8 characters long");
+      return;
+    }
+    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/.test(newPassword)) {
+      setError("Password must contain at least one uppercase letter, one lowercase letter, and one number");
       return;
     }
 
@@ -267,10 +285,11 @@ const ForgotPasswordModal = ({ isOpen, onClose, onSwitchToLogin }) => {
                     Didn't receive the code?{" "}
                     <button
                       type="button"
-                      onClick={handleSendOTP}
-                      className="font-medium text-orange-400 hover:text-orange-300"
+                      onClick={handleResendOTP}
+                      disabled={isLoading}
+                      className="font-medium text-orange-400 hover:text-orange-300 disabled:opacity-50"
                     >
-                      Resend OTP
+                      {isLoading ? "Sending..." : "Resend OTP"}
                     </button>
                   </p>
                 </div>
@@ -306,7 +325,7 @@ const ForgotPasswordModal = ({ isOpen, onClose, onSwitchToLogin }) => {
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       required
-                      placeholder="At least 8 characters"
+                      placeholder="8+ chars, 1 upper, 1 lower, 1 number"
                       className="w-full rounded-xl border border-white/10 bg-white/5 py-3 pl-12 pr-12 text-white placeholder:text-white/40 focus:border-orange-500/50 focus:bg-white/10 focus:outline-none focus:ring-2 focus:ring-orange-500/20 transition"
                     />
                     <button

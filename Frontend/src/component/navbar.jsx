@@ -39,7 +39,7 @@ const PlaceholderLogo = () => {
 const desktopLinks = [
   { label: "Home", href: "/", type: "link" },
   { label: "Services", href: "/services", type: "link" },
-  { label: "Shop", href: "#shop", type: "link" },
+  { label: "Rent a Vehicle", href: "/vehicles", type: "link" },
   { label: "FAQ", href: "/faq", type: "link" },
   { label: "Contact", href: "/contact", type: "link" },
 ];
@@ -56,6 +56,8 @@ const Navbar = ({ isAuthenticated, onOpenLogin, onOpenSignUp, onLogout }) => {
       setActive("Home");
     } else if (location.pathname === "/services") {
       setActive("Services");
+    } else if (location.pathname === "/vehicles") {
+      setActive("Rent a Vehicle");
     } else if (location.pathname === "/faq") {
       setActive("FAQ");
     } else if (location.pathname === "/contact") {
@@ -172,16 +174,16 @@ const Navbar = ({ isAuthenticated, onOpenLogin, onOpenSignUp, onLogout }) => {
                 Help &amp; Support
               </Link>
 
-              <button
-                type="button"
+              <Link
+                to="/favorites"
                 className="group relative hidden h-12 w-12 cursor-pointer items-center justify-center rounded-full bg-white/5 text-white/80 ring-1 ring-white/10 transition-all duration-300 hover:scale-110 hover:bg-white/10 hover:text-white hover:ring-white/20 md:inline-flex"
-                aria-label="Wishlist"
+                aria-label="Favorite vehicles"
               >
                 <FontAwesomeIcon
                   icon={faHeart}
                   className="h-5 w-5 transition-all duration-300 group-hover:scale-125 group-hover:text-red-400"
                 />
-              </button>
+              </Link>
 
               {isAuthenticated ? (
                 <div

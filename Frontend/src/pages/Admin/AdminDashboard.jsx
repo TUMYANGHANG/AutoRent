@@ -22,9 +22,21 @@ const AdminDashboard = ({ user }) => {
   const [activeSection, setActiveSection] = useState("dashboard");
   const [vehicles, setVehicles] = useState([]);
   const [vehiclesLoading, setVehiclesLoading] = useState(false);
+  const [vehicleOwnerFilter, setVehicleOwnerFilter] = useState("");
+  const [allOwners, setAllOwners] = useState([]);
   const [detailVehicle, setDetailVehicle] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [verifyLoading, setVerifyLoading] = useState(null);
+
+  const adminPageTitles = {
+    dashboard: "Dashboard",
+    users: "User Management",
+    vehicles: "Vehicle Management",
+    reports: "Reports",
+    settings: "Settings",
+    profile: "Profile",
+  };
+  const pageTitle = adminPageTitles[activeSection] ?? "Dashboard";
 
   const fullName =
     user.firstName && user.lastName
@@ -38,15 +50,25 @@ const AdminDashboard = ({ user }) => {
   };
 
   useEffect(() => {
-    if (activeSection === "vehicles") {
-      setVehiclesLoading(true);
-      adminAPI
-        .getAllVehicles()
-        .then((res) => setVehicles(res.data || []))
-        .catch(() => setVehicles([]))
-        .finally(() => setVehiclesLoading(false));
-    }
-  }, [activeSection]);
+    if (activeSection !== "vehicles") return;
+    setVehiclesLoading(true);
+    const params = vehicleOwnerFilter ? { ownerId: vehicleOwnerFilter } : {};
+    adminAPI
+      .getAllVehicles(params)
+      .then((res) => {
+        const data = Array.isArray(res?.data) ? res.data : [];
+        setVehicles(data);
+        if (!vehicleOwnerFilter) {
+          const seen = new Set();
+          const owners = data
+            .map((v) => v.owner)
+            .filter((o) => o?.id && !seen.has(o.id) && seen.add(o.id));
+          setAllOwners(owners);
+        }
+      })
+      .catch(() => setVehicles([]))
+      .finally(() => setVehiclesLoading(false));
+  }, [activeSection, vehicleOwnerFilter]);
 
   const openVehicleDetail = (vehicle) => {
     setDetailVehicle(null);
@@ -85,16 +107,6 @@ const AdminDashboard = ({ user }) => {
     if (activeSection === "dashboard") {
       return (
         <>
-          <div className="mb-8">
-            <h1 className="text-4xl font-extrabold text-slate-900">
-              Administrator Dashboard
-            </h1>
-            <p className="mt-2 text-slate-600">
-              Welcome back, {user.firstName || "User"}! Manage the platform and
-              oversee operations.
-            </p>
-          </div>
-
           <div className="mb-8 grid gap-6 md:grid-cols-4">
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <div className="flex items-center justify-between">
@@ -221,18 +233,28 @@ const AdminDashboard = ({ user }) => {
     }
 
     if (activeSection === "vehicles") {
+      const ownerLabel = (o) =>
+        [o?.firstName, o?.lastName].filter(Boolean).join(" ") || o?.email || "—";
       return (
         <>
-          <div className="mb-8">
-            <h1 className="text-4xl font-extrabold text-slate-900">
-              Vehicle Management
-            </h1>
-            <p className="mt-2 text-slate-600">
-              View all vehicles and verify documents. Click View details to see
-              vehicle documents and verify.
-            </p>
+          <div className="mb-4 flex flex-wrap items-center gap-3">
+            <label htmlFor="vehicle-owner-filter" className="text-sm font-medium text-slate-700">
+              Filter by owner:
+            </label>
+            <select
+              id="vehicle-owner-filter"
+              value={vehicleOwnerFilter}
+              onChange={(e) => setVehicleOwnerFilter(e.target.value)}
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
+            >
+              <option value="">All owners</option>
+              {allOwners.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {ownerLabel(o)} {o?.email ? `(${o.email})` : ""}
+                </option>
+              ))}
+            </select>
           </div>
-
           <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
             {vehiclesLoading ? (
               <div className="p-12 text-center text-slate-500">
@@ -248,13 +270,16 @@ const AdminDashboard = ({ user }) => {
                   <thead className="border-b border-slate-200 bg-slate-50">
                     <tr>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">
-                        Make / Model
+                        Brand / Model
+                      </th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">
+                        Owner
                       </th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">
                         Year
                       </th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">
-                        License
+                        Type
                       </th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">
                         Status
@@ -271,13 +296,16 @@ const AdminDashboard = ({ user }) => {
                     {vehicles.map((v) => (
                       <tr key={v.id} className="hover:bg-slate-50">
                         <td className="px-4 py-3 text-sm text-slate-900">
-                          {v.make} {v.model}
+                          {v.brand} {v.model}
                         </td>
                         <td className="px-4 py-3 text-sm text-slate-600">
-                          {v.year}
+                          {ownerLabel(v.owner)}
                         </td>
                         <td className="px-4 py-3 text-sm text-slate-600">
-                          {v.licensePlate}
+                          {v.manufactureYear}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-600">
+                          {v.vehicleType || "—"}
                         </td>
                         <td className="px-4 py-3">
                           <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
@@ -319,35 +347,18 @@ const AdminDashboard = ({ user }) => {
     }
 
     if (activeSection === "users") {
-      return (
-        <div className="mb-8">
-          <h1 className="text-4xl font-extrabold text-slate-900">
-            User Management
-          </h1>
-          <p className="mt-2 text-slate-600">Coming soon.</p>
-        </div>
-      );
+      return <p className="text-slate-600">Coming soon.</p>;
     }
 
     if (activeSection === "reports" || activeSection === "settings") {
-      return (
-        <div className="mb-8">
-          <h1 className="text-4xl font-extrabold text-slate-900">
-            {activeSection === "reports" ? "Reports" : "Settings"}
-          </h1>
-          <p className="mt-2 text-slate-600">Coming soon.</p>
-        </div>
-      );
+      return <p className="text-slate-600">Coming soon.</p>;
     }
 
     if (activeSection === "profile") {
       return (
-        <div className="mb-8">
-          <h1 className="text-4xl font-extrabold text-slate-900">Profile</h1>
-          <p className="mt-2 text-slate-600">
-            Manage your admin profile. Coming soon.
-          </p>
-        </div>
+        <p className="text-slate-600">
+          Manage your admin profile. Coming soon.
+        </p>
       );
     }
 
@@ -356,7 +367,7 @@ const AdminDashboard = ({ user }) => {
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50">
-      <AdminNavbar user={user} onLogout={handleLogout} />
+      <AdminNavbar user={user} onLogout={handleLogout} pageTitle={pageTitle} />
       <div className="flex flex-1">
         <AdminSidebar activeKey={activeSection} onSelect={setActiveSection} />
         <main className="min-w-0 flex-1 px-4 py-12 pl-14 sm:px-6 lg:pl-8">
@@ -441,10 +452,10 @@ const AdminDashboard = ({ user }) => {
                     )}
                     <div className="sm:col-span-2">
                       <p className="text-sm font-medium text-slate-500">
-                        Daily rate
+                        Price per day (NRP)
                       </p>
                       <p className="font-semibold text-slate-900">
-                        ${detailVehicle.dailyRate}
+                        NRP {detailVehicle.pricePerDay}
                       </p>
                     </div>
                     {detailVehicle.description && (
@@ -459,34 +470,72 @@ const AdminDashboard = ({ user }) => {
                     )}
                   </div>
 
-                  {detailVehicle.images?.length > 0 && (
+                  {((detailVehicle.images?.length ?? 0) > 0 || (detailVehicle.documents?.length ?? 0) > 0) && (
                     <div className="mt-6">
                       <p className="mb-2 text-sm font-medium text-slate-700">
                         Images & documents
                       </p>
                       <div className="grid gap-4 sm:grid-cols-2">
-                        {detailVehicle.images.map((img) => (
+                        {detailVehicle.images?.map((img) => (
                           <div
                             key={img.id}
-                            className={`rounded-xl border-2 overflow-hidden ${
-                              img.vehicleDocumentImage
-                                ? "border-amber-400 bg-amber-50/50"
-                                : "border-slate-200 bg-slate-50"
-                            }`}
+                            className="rounded-xl border-2 border-slate-200 overflow-hidden bg-slate-50"
                           >
                             <img
                               src={img.imageUrl}
                               alt="Vehicle"
                               className="h-40 w-full object-cover"
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.style.display = "none";
+                                const fallback = e.target.nextElementSibling;
+                                if (fallback) fallback.classList.remove("hidden");
+                              }}
                             />
+                            <div className="hidden h-40 w-full bg-slate-200">
+                              <div className="flex h-full w-full items-center justify-center text-slate-500">
+                                Image unavailable
+                              </div>
+                            </div>
                             <div className="px-3 py-2 text-xs text-slate-600">
-                              {img.vehicleDocumentImage ? (
-                                <span className="font-medium text-amber-700">
-                                  Vehicle document
-                                </span>
-                              ) : (
-                                "Vehicle photo"
-                              )}
+                              Vehicle photo
+                            </div>
+                          </div>
+                        ))}
+                        {detailVehicle.documents?.map((doc) => (
+                          <div
+                            key={doc.id}
+                            className="rounded-xl border-2 border-amber-400 overflow-hidden bg-amber-50/50"
+                          >
+                            {doc.documentUrl?.toLowerCase?.().endsWith(".pdf") ? (
+                              <a
+                                href={doc.documentUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex h-40 w-full items-center justify-center bg-amber-100 text-amber-800 hover:bg-amber-200"
+                              >
+                                View PDF document
+                              </a>
+                            ) : (
+                              <img
+                                src={doc.documentUrl}
+                                alt="Vehicle document"
+                                className="h-40 w-full object-cover"
+                                onError={(e) => {
+                                  e.target.onerror = null;
+                                  e.target.style.display = "none";
+                                  const fallback = e.target.nextElementSibling;
+                                  if (fallback) fallback.classList.remove("hidden");
+                                }}
+                              />
+                            )}
+                            <div className="hidden h-40 w-full bg-amber-100">
+                              <div className="flex h-full w-full items-center justify-center text-amber-700">
+                                Document unavailable
+                              </div>
+                            </div>
+                            <div className="px-3 py-2 text-xs font-medium text-amber-700">
+                              Vehicle document
                             </div>
                           </div>
                         ))}

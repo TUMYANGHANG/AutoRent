@@ -32,7 +32,7 @@ const PlaceholderLogo = () => {
   );
 };
 
-const AdminNavbar = ({ user, onLogout }) => {
+const AdminNavbar = ({ user, onLogout, pageTitle }) => {
   const [profileOpen, setProfileOpen] = useState(false);
 
   const displayName =
@@ -44,7 +44,7 @@ const AdminNavbar = ({ user, onLogout }) => {
     <header className="sticky top-0 z-50 w-full">
       <div className="w-full border-b border-slate-200 bg-white shadow-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <div className="flex h-20 items-center justify-between gap-4">
+          <div className="relative flex h-20 items-center justify-between gap-4">
             <Link
               to="/dashboard"
               className="group flex shrink-0 cursor-pointer items-center gap-3 rounded-xl transition-all duration-300 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
@@ -61,6 +61,11 @@ const AdminNavbar = ({ user, onLogout }) => {
                 </div>
               </div>
             </Link>
+
+            {/* Center: current page title */}
+            <h1 className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-lg font-semibold text-slate-800 sm:text-xl">
+              {pageTitle || "Dashboard"}
+            </h1>
 
             <div className="ml-auto flex shrink-0 items-center gap-3">
               <span className="hidden text-sm font-medium text-slate-600 sm:inline-block">

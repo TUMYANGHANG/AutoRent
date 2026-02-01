@@ -3,8 +3,8 @@ import { eq } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import { db } from "../db/index.js";
 import { users } from "../schema/index.js";
-import { sendOTPEmail } from "../services/emailService.js";
-import { createOTP, generateOTP, verifyOTP } from "../services/otpService.js";
+import { sendOTPEmail, sendPasswordResetOTPEmail } from "../services/emailService.js";
+import { createOTP, generateOTP, validateOTP, verifyOTP } from "../services/otpService.js";
 
 /**
  * Register a new user
@@ -301,7 +301,136 @@ const login = async (req, res) => {
   }
 };
 
+/**
+ * Forgot password: send OTP to registered email (any user)
+ */
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required",
+      });
+    }
+
+    const [user] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, email.toLowerCase()))
+      .limit(1);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "No account found with this email address",
+      });
+    }
+
+    const otp = await createOTP(email.toLowerCase());
+
+    try {
+      await sendPasswordResetOTPEmail(email.toLowerCase(), otp);
+      res.status(200).json({
+        success: true,
+        message: "OTP has been sent to your email. Use it to reset your password.",
+      });
+    } catch (emailError) {
+      console.error("Failed to send password reset OTP email:", emailError);
+      res.status(500).json({
+        success: false,
+        message: "Failed to send OTP email. Please try again later.",
+      });
+    }
+  } catch (error) {
+    console.error("Forgot password error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
+
+/**
+ * Verify OTP for forgot password (does not clear OTP; used before reset step)
+ */
+const verifyOTPForReset = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    const isValid = await validateOTP(email.toLowerCase(), otp);
+
+    if (!isValid) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or expired OTP",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "OTP verified successfully. You can now set a new password.",
+    });
+  } catch (error) {
+    console.error("Verify OTP for reset error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
+
+/**
+ * Reset password: verify OTP (clears it), then update password
+ */
+const resetPassword = async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    const isValid = await verifyOTP(email.toLowerCase(), otp);
+
+    if (!isValid) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or expired OTP. Please request a new one.",
+      });
+    }
+
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+    await db
+      .update(users)
+      .set({
+        password: hashedPassword,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.email, email.toLowerCase()));
+
+    res.status(200).json({
+      success: true,
+      message: "Password has been reset successfully. You can now sign in with your new password.",
+    });
+  } catch (error) {
+    console.error("Reset password error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
+
 export {
-  login, register, resendOTP, verifyEmail
+  forgotPassword,
+  login,
+  register,
+  resendOTP,
+  resetPassword,
+  verifyEmail,
+  verifyOTPForReset,
 };
 

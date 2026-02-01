@@ -179,6 +179,28 @@ export const vehicleAPI = {
     return data;
   },
 
+  /** Upload document files (PDF/images) via backend. Returns { urls: string[] }. */
+  uploadDocuments: async (files) => {
+    const token = localStorage.getItem("token");
+    if (!token) throw new Error("Access token required");
+    const formData = new FormData();
+    for (let i = 0; i < files.length; i++) {
+      formData.append("documents", files[i]);
+    }
+    const url = `${API_BASE_URL}/upload/documents`;
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      if (data.errors && Array.isArray(data.errors)) throw new Error(data.errors.join(", "));
+      throw new Error(data.message || "Upload failed");
+    }
+    return data;
+  },
+
   getMyVehicles: async () => {
     return apiRequest("/vehicles", { method: "GET" });
   },
@@ -193,12 +215,62 @@ export const vehicleAPI = {
       body: JSON.stringify({ imageUrls }),
     });
   },
+
+  updateVehicle: async (vehicleId, data) => {
+    return apiRequest(`/vehicles/${vehicleId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteVehicle: async (vehicleId) => {
+    return apiRequest(`/vehicles/${vehicleId}`, { method: "DELETE" });
+  },
+};
+
+// Public / Renter API (no auth required for browse)
+export const renterAPI = {
+  /** Get all vehicles available for rent (verified + available) */
+  getVehiclesForRent: async () => {
+    return apiRequest("/vehicles/browse", { method: "GET" });
+  },
+
+  /** Get a single vehicle by ID for rent (verified + available) */
+  getVehicleById: async (vehicleId) => {
+    return apiRequest(`/vehicles/browse/${vehicleId}`, { method: "GET" });
+  },
+};
+
+// Favorites API (auth required)
+export const favoritesAPI = {
+  getIds: async () => {
+    const res = await apiRequest("/favorites/ids", { method: "GET" });
+    return res?.data ?? [];
+  },
+
+  getFavorites: async () => {
+    const res = await apiRequest("/favorites", { method: "GET" });
+    return res?.data ?? [];
+  },
+
+  add: async (vehicleId) => {
+    return apiRequest("/favorites", {
+      method: "POST",
+      body: JSON.stringify({ vehicleId }),
+    });
+  },
+
+  remove: async (vehicleId) => {
+    return apiRequest(`/favorites/${vehicleId}`, { method: "DELETE" });
+  },
 };
 
 // Admin API (admin only)
 export const adminAPI = {
-  getAllVehicles: async () => {
-    return apiRequest("/admin/vehicles", { method: "GET" });
+  getAllVehicles: async (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    const url = qs ? `/admin/vehicles?${qs}` : "/admin/vehicles";
+    return apiRequest(url, { method: "GET" });
   },
 
   getVehicleById: async (vehicleId) => {

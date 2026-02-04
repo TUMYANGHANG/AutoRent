@@ -1,10 +1,12 @@
 import {
   faBars,
+  faBell,
   faCar,
   faChartLine,
   faDollarSign,
   faGauge,
   faPlus,
+  faRightFromBracket,
   faUser,
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
@@ -13,6 +15,7 @@ import { useState } from "react";
 
 const navItems = [
   { key: "dashboard", label: "Dashboard", icon: faGauge },
+  { key: "notifications", label: "Notifications", icon: faBell },
   { key: "vehicles", label: "My Vehicles", icon: faCar },
   { key: "add-vehicle", label: "Add Vehicle", icon: faPlus },
   { key: "rentals", label: "Rentals", icon: faChartLine },
@@ -20,7 +23,7 @@ const navItems = [
   { key: "profile", label: "Profile", icon: faUser },
 ];
 
-const OwnerSidebar = ({ activeKey = "dashboard", onSelect }) => {
+const OwnerSidebar = ({ activeKey = "dashboard", onSelect, unreadCount = 0, onLogout }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const sidebarContent = (
@@ -56,11 +59,31 @@ const OwnerSidebar = ({ activeKey = "dashboard", onSelect }) => {
                 icon={item.icon}
                 className="h-5 w-5 shrink-0"
               />
-              <span>{item.label}</span>
+              <span className="flex-1">{item.label}</span>
+              {item.key === "notifications" && unreadCount > 0 && (
+                <span className="rounded-full bg-orange-500 px-2 py-0.5 text-xs font-semibold text-white">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
             </button>
           );
         })}
       </nav>
+      {onLogout && (
+        <div className="border-t border-slate-200 px-3 py-4">
+          <button
+            type="button"
+            onClick={() => {
+              onLogout();
+              setMobileOpen(false);
+            }}
+            className="flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium text-red-600 transition hover:bg-red-50 hover:text-red-700"
+          >
+            <FontAwesomeIcon icon={faRightFromBracket} className="h-5 w-5 shrink-0" />
+            <span>Logout</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 

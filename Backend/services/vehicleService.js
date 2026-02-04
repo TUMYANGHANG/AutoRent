@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, count } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { users, vehicleImages, vehicles } from "../schema/index.js";
 
@@ -406,10 +406,21 @@ const deleteVehicle = async (vehicleId, ownerId) => {
   return deleted != null && deleted.length > 0;
 };
 
+/**
+ * Get admin dashboard stats (e.g. total vehicles count).
+ */
+const getAdminStats = async () => {
+  const [row] = await db.select({ totalVehicles: count() }).from(vehicles);
+  return {
+    totalVehicles: row?.totalVehicles ?? 0,
+  };
+};
+
 export {
   addVehicleImages,
   createVehicle,
   deleteVehicle,
+  getAdminStats,
   getAllVehicles,
   getPublicVehicleById,
   getPublicVehicles,

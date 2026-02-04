@@ -1,11 +1,18 @@
 import {
+  faBell,
+  faCalendar,
   faCar,
   faChartLine,
   faCheckCircle,
   faDollarSign,
+  faEdit,
   faEnvelope,
   faEye,
+  faIdCard,
+  faImage,
+  faMapMarkerAlt,
   faPenToSquare,
+  faPhone,
   faPlus,
   faTrashCan,
   faTimesCircle,
@@ -21,7 +28,8 @@ import AddVehicleForm from "../../component/owner/AddVehicleForm.jsx";
 import EditVehicleForm from "../../component/owner/EditVehicleForm.jsx";
 import OwnerNavbar from "../../component/owner/OwnerNavbar.jsx";
 import OwnerSidebar from "../../component/owner/OwnerSidebar.jsx";
-import { removeAuthToken, vehicleAPI } from "../../utils/api.js";
+import OwnerProfileForm from "../../component/owner/OwnerProfileForm.jsx";
+import { getAuthToken, notificationsAPI, removeAuthToken, userDetailsAPI, vehicleAPI } from "../../utils/api.js";
 
 const OwnerDashboard = ({ user }) => {
   const navigate = useNavigate();
@@ -32,6 +40,12 @@ const OwnerDashboard = ({ user }) => {
   const [detailVehicle, setDetailVehicle] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [userDetails, setUserDetails] = useState(null);
+  const [loadingDetails, setLoadingDetails] = useState(true);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
 
   const fetchVehicles = useCallback(async () => {
     setVehiclesLoading(true);
@@ -54,6 +68,51 @@ const OwnerDashboard = ({ user }) => {
       setDetailVehicle(null);
     }
   }, [activeSection, fetchVehicles]);
+
+  useEffect(() => {
+    if (activeSection === "notifications") {
+      setNotificationsLoading(true);
+      notificationsAPI
+        .getNotifications()
+        .then((data) => setNotifications(Array.isArray(data) ? data : []))
+        .catch(() => setNotifications([]))
+        .finally(() => setNotificationsLoading(false));
+    }
+  }, [activeSection]);
+
+  useEffect(() => {
+    notificationsAPI.getUnreadCount().then((n) => setUnreadCount(n)).catch(() => setUnreadCount(0));
+  }, [activeSection]);
+
+  useEffect(() => {
+    if (activeSection === "profile") {
+      const fetchUserDetails = async () => {
+        if (!getAuthToken()) return;
+        try {
+          setLoadingDetails(true);
+          const res = await userDetailsAPI.getUserDetails(user.id);
+          setUserDetails(res?.data || null);
+        } catch (err) {
+          if (err?.message?.includes("not found")) {
+            setUserDetails(null);
+          }
+        } finally {
+          setLoadingDetails(false);
+        }
+      };
+      fetchUserDetails();
+    }
+  }, [activeSection, user.id]);
+
+  const handleProfileUpdate = async () => {
+    try {
+      const res = await userDetailsAPI.getUserDetails(user.id);
+      setUserDetails(res?.data || null);
+      setIsEditingProfile(false);
+    } catch (err) {
+      console.error("Failed to refresh profile:", err);
+    }
+  };
 
   const openVehicleDetail = (vehicle) => {
     setDetailVehicle(null);
@@ -95,6 +154,7 @@ const OwnerDashboard = ({ user }) => {
 
   const ownerPageTitles = {
     dashboard: "Dashboard",
+    notifications: "Notifications",
     vehicles: "My Vehicles",
     "add-vehicle": "Add Vehicle",
     rentals: "Rentals",
@@ -121,10 +181,323 @@ const OwnerDashboard = ({ user }) => {
         <OwnerSidebar
           activeKey={activeSection}
           onSelect={setActiveSection}
+          unreadCount={unreadCount}
+          onLogout={handleLogout}
         />
         <main className="min-w-0 flex-1 px-4 py-12 pl-14 sm:px-6 lg:pl-8">
           <div className="mx-auto max-w-5xl">
-            {activeSection === "add-vehicle" ? (
+            {activeSection === "notifications" ? (
+              <>
+                <div className="mb-4 flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-slate-900">Notifications</h2>
+                  {notifications.some((n) => !n.isRead) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        notificationsAPI.markAllAsRead().then(() => {
+                          setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+                          setUnreadCount(0);
+                        });
+                      }}
+                      className="cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                    >
+                      Mark all as read
+                    </button>
+                  )}
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                  {notificationsLoading ? (
+                    <div className="p-12 text-center text-slate-500">Loading notifications...</div>
+                  ) : notifications.length === 0 ? (
+                    <div className="p-12 text-center text-slate-500">No notifications yet.</div>
+                  ) : (
+                    <ul className="divide-y divide-slate-200">
+                      {notifications.map((n) => {
+                        const formatDate = (d) => {
+                          if (!d) return "—";
+                          return new Date(d).toLocaleString(undefined, {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          });
+                        };
+                        return (
+                          <li
+                            key={n.id}
+                            className={`flex items-start gap-4 px-4 py-4 ${!n.isRead ? "bg-orange-50/50" : ""}`}
+                          >
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-100">
+                              <FontAwesomeIcon icon={faBell} className="h-5 w-5 text-orange-600" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="font-medium text-slate-900">{n.title}</p>
+                              {n.message && (
+                                <p className="mt-0.5 text-sm text-slate-600">{n.message}</p>
+                              )}
+                              <p className="mt-1 text-xs text-slate-400">{formatDate(n.createdAt)}</p>
+                            </div>
+                            {!n.isRead && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  notificationsAPI.markAsRead(n.id).then(() => {
+                                    setNotifications((prev) =>
+                                      prev.map((x) => (x.id === n.id ? { ...x, isRead: true } : x))
+                                    );
+                                    setUnreadCount((c) => Math.max(0, c - 1));
+                                  });
+                                }}
+                                className="cursor-pointer rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
+                              >
+                                Mark read
+                              </button>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
+              </>
+            ) : activeSection === "profile" ? (
+              <>
+                <div className="mb-8">
+                  <h1 className="text-4xl font-extrabold text-slate-900">Profile</h1>
+                  <p className="mt-2 text-slate-600">Manage your profile information</p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+                  <div className="mb-6 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      {userDetails?.profilePicture ? (
+                        <img
+                          src={userDetails.profilePicture}
+                          alt={fullName}
+                          className="h-16 w-16 rounded-full object-cover border-2 border-orange-500/30"
+                        />
+                      ) : (
+                        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-orange-100 text-2xl font-bold text-orange-600">
+                          {user.firstName?.[0]?.toUpperCase() ||
+                            user.email[0].toUpperCase()}
+                        </div>
+                      )}
+                      <div>
+                        <h2 className="text-2xl font-bold text-slate-900">{fullName}</h2>
+                        <p className="text-slate-500">Profile Information</p>
+                      </div>
+                    </div>
+                    {!isEditingProfile && (
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingProfile(true)}
+                        className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                      >
+                        <FontAwesomeIcon icon={faEdit} className="h-4 w-4" />
+                        Edit Profile
+                      </button>
+                    )}
+                  </div>
+
+                  {isEditingProfile ? (
+                    <OwnerProfileForm
+                      user={user}
+                      userDetails={userDetails}
+                      onSuccess={handleProfileUpdate}
+                      onCancel={() => setIsEditingProfile(false)}
+                    />
+                  ) : (
+                    <>
+                      {loadingDetails ? (
+                        <div className="py-8 text-center text-slate-500">Loading profile...</div>
+                      ) : (
+                        <div className="grid gap-6 md:grid-cols-2">
+                          <div className="flex items-start gap-4 rounded-xl bg-slate-50 p-4">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-orange-100">
+                              <FontAwesomeIcon
+                                icon={faUser}
+                                className="h-5 w-5 text-orange-600"
+                              />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-slate-500">Full Name</p>
+                              <p className="mt-1 text-lg font-semibold text-slate-900">
+                                {fullName}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-start gap-4 rounded-xl bg-slate-50 p-4">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-orange-100">
+                              <FontAwesomeIcon
+                                icon={faEnvelope}
+                                className="h-5 w-5 text-orange-600"
+                              />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-slate-500">
+                                Email Address
+                              </p>
+                              <p className="mt-1 text-lg font-semibold text-slate-900">
+                                {user.email}
+                              </p>
+                            </div>
+                          </div>
+
+                          {userDetails?.phoneNumber && (
+                            <div className="flex items-start gap-4 rounded-xl bg-slate-50 p-4">
+                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-orange-100">
+                                <FontAwesomeIcon
+                                  icon={faPhone}
+                                  className="h-5 w-5 text-orange-600"
+                                />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-slate-500">Phone Number</p>
+                                <p className="mt-1 text-lg font-semibold text-slate-900">
+                                  {userDetails.phoneNumber}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+
+                          {userDetails?.dateOfBirth && (
+                            <div className="flex items-start gap-4 rounded-xl bg-slate-50 p-4">
+                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-orange-100">
+                                <FontAwesomeIcon
+                                  icon={faCalendar}
+                                  className="h-5 w-5 text-orange-600"
+                                />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-slate-500">Date of Birth</p>
+                                <p className="mt-1 text-lg font-semibold text-slate-900">
+                                  {new Date(userDetails.dateOfBirth).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+
+                          {userDetails?.address && (
+                            <div className="flex items-start gap-4 rounded-xl bg-slate-50 p-4">
+                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-orange-100">
+                                <FontAwesomeIcon
+                                  icon={faMapMarkerAlt}
+                                  className="h-5 w-5 text-orange-600"
+                                />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-slate-500">Address</p>
+                                <p className="mt-1 text-lg font-semibold text-slate-900">
+                                  {userDetails.address}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+
+                          {userDetails?.city && (
+                            <div className="flex items-start gap-4 rounded-xl bg-slate-50 p-4">
+                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-orange-100">
+                                <FontAwesomeIcon
+                                  icon={faMapMarkerAlt}
+                                  className="h-5 w-5 text-orange-600"
+                                />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-slate-500">City</p>
+                                <p className="mt-1 text-lg font-semibold text-slate-900">
+                                  {userDetails.city}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+
+                          {userDetails?.licenseNumber && (
+                            <div className="flex items-start gap-4 rounded-xl bg-slate-50 p-4">
+                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-orange-100">
+                                <FontAwesomeIcon
+                                  icon={faIdCard}
+                                  className="h-5 w-5 text-orange-600"
+                                />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-slate-500">License Number</p>
+                                <p className="mt-1 text-lg font-semibold text-slate-900">
+                                  {userDetails.licenseNumber}
+                                </p>
+                                {userDetails.isLicenseVerified && (
+                                  <span className="mt-1 inline-flex items-center gap-1 text-xs text-emerald-600">
+                                    <FontAwesomeIcon icon={faCheckCircle} className="h-3 w-3" />
+                                    Verified
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {userDetails?.licenseExpiry && (
+                            <div className="flex items-start gap-4 rounded-xl bg-slate-50 p-4">
+                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-orange-100">
+                                <FontAwesomeIcon
+                                  icon={faCalendar}
+                                  className="h-5 w-5 text-orange-600"
+                                />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-slate-500">License Expiry</p>
+                                <p className="mt-1 text-lg font-semibold text-slate-900">
+                                  {new Date(userDetails.licenseExpiry).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+
+                          {userDetails?.licenseImage && (
+                            <div className="flex items-start gap-4 rounded-xl bg-slate-50 p-4 md:col-span-2">
+                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-orange-100">
+                                <FontAwesomeIcon
+                                  icon={faImage}
+                                  className="h-5 w-5 text-orange-600"
+                                />
+                              </div>
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-slate-500">License Image</p>
+                                <img
+                                  src={userDetails.licenseImage}
+                                  alt="License"
+                                  className="mt-2 max-h-48 rounded-lg border border-slate-200"
+                                />
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="flex items-start gap-4 rounded-xl bg-slate-50 p-4 md:col-span-2">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-orange-100">
+                              <FontAwesomeIcon
+                                icon={faUserTag}
+                                className="h-5 w-5 text-orange-600"
+                              />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-slate-500">Role</p>
+                              <p className="mt-1 text-lg font-semibold text-slate-900">Vehicle Owner</p>
+                            </div>
+                          </div>
+
+                          {!userDetails && (
+                            <div className="md:col-span-2 rounded-xl bg-orange-50 border border-orange-200 px-4 py-3 text-center">
+                              <p className="text-orange-700 text-sm">
+                                Complete your profile to get started. Click "Edit Profile" to add your information.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </>
+            ) : activeSection === "add-vehicle" ? (
               <AddVehicleForm
                   onCancel={() => setActiveSection("dashboard")}
                   onSuccess={() => {

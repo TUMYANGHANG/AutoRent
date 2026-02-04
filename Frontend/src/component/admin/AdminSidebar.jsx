@@ -1,5 +1,6 @@
 import {
   faBars,
+  faBell,
   faCar,
   faChartLine,
   faCog,
@@ -13,6 +14,7 @@ import { useState } from "react";
 
 const navItems = [
   { key: "dashboard", label: "Dashboard", icon: faGauge },
+  { key: "notifications", label: "Notifications", icon: faBell },
   { key: "users", label: "User Management", icon: faUsers },
   { key: "vehicles", label: "Vehicle Management", icon: faCar },
   { key: "reports", label: "Reports", icon: faChartLine },
@@ -20,7 +22,7 @@ const navItems = [
   { key: "profile", label: "Profile", icon: faUser },
 ];
 
-const AdminSidebar = ({ activeKey = "dashboard", onSelect }) => {
+const AdminSidebar = ({ activeKey = "dashboard", onSelect, unreadCount = 0 }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const sidebarContent = (
@@ -53,7 +55,12 @@ const AdminSidebar = ({ activeKey = "dashboard", onSelect }) => {
               }`}
             >
               <FontAwesomeIcon icon={item.icon} className="h-5 w-5 shrink-0" />
-              <span>{item.label}</span>
+              <span className="flex-1">{item.label}</span>
+              {item.key === "notifications" && unreadCount > 0 && (
+                <span className="rounded-full bg-red-500 px-2 py-0.5 text-xs font-semibold text-white">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
             </button>
           );
         })}

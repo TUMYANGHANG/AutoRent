@@ -1,4 +1,5 @@
 import {
+  faBell,
   faCar,
   faChartBar,
   faCheckCircle,
@@ -15,7 +16,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminNavbar from "../../component/admin/AdminNavbar.jsx";
 import AdminSidebar from "../../component/admin/AdminSidebar.jsx";
-import { adminAPI, removeAuthToken } from "../../utils/api.js";
+import { adminAPI, notificationsAPI, removeAuthToken } from "../../utils/api.js";
 
 const AdminDashboard = ({ user }) => {
   const navigate = useNavigate();
@@ -27,9 +28,20 @@ const AdminDashboard = ({ user }) => {
   const [detailVehicle, setDetailVehicle] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [verifyLoading, setVerifyLoading] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [dashboardStats, setDashboardStats] = useState({
+    totalVehicles: 0,
+    totalUsers: 0,
+    activeRentals: 0,
+    pendingActions: 0,
+  });
+  const [statsLoading, setStatsLoading] = useState(false);
 
   const adminPageTitles = {
     dashboard: "Dashboard",
+    notifications: "Notifications",
     users: "User Management",
     vehicles: "Vehicle Management",
     reports: "Reports",
@@ -70,6 +82,41 @@ const AdminDashboard = ({ user }) => {
       .finally(() => setVehiclesLoading(false));
   }, [activeSection, vehicleOwnerFilter]);
 
+  useEffect(() => {
+    if (activeSection === "dashboard") {
+      setStatsLoading(true);
+      adminAPI
+        .getStats()
+        .then((res) => {
+          const data = res?.data ?? {};
+          setDashboardStats((prev) => ({
+            ...prev,
+            totalVehicles: data.totalVehicles ?? 0,
+            totalUsers: data.totalUsers ?? 0,
+            activeRentals: data.activeRentals ?? 0,
+            pendingActions: data.pendingActions ?? 0,
+          }));
+        })
+        .catch(() => {})
+        .finally(() => setStatsLoading(false));
+    }
+  }, [activeSection]);
+
+  useEffect(() => {
+    if (activeSection === "notifications") {
+      setNotificationsLoading(true);
+      notificationsAPI
+        .getNotifications()
+        .then((data) => setNotifications(Array.isArray(data) ? data : []))
+        .catch(() => setNotifications([]))
+        .finally(() => setNotificationsLoading(false));
+    }
+  }, [activeSection]);
+
+  useEffect(() => {
+    notificationsAPI.getUnreadCount().then((n) => setUnreadCount(n)).catch(() => setUnreadCount(0));
+  }, [activeSection]);
+
   const openVehicleDetail = (vehicle) => {
     setDetailVehicle(null);
     setDetailLoading(true);
@@ -82,6 +129,22 @@ const AdminDashboard = ({ user }) => {
 
   const closeVehicleDetail = () => {
     setDetailVehicle(null);
+  };
+
+  const refreshDashboardStats = () => {
+    adminAPI
+      .getStats()
+      .then((res) => {
+        const data = res?.data ?? {};
+        setDashboardStats((prev) => ({
+          ...prev,
+          totalVehicles: data.totalVehicles ?? prev.totalVehicles,
+          totalUsers: data.totalUsers ?? prev.totalUsers,
+          activeRentals: data.activeRentals ?? prev.activeRentals,
+          pendingActions: data.pendingActions ?? prev.pendingActions,
+        }));
+      })
+      .catch(() => {});
   };
 
   const handleVerifyVehicle = (vehicleId) => {
@@ -99,6 +162,7 @@ const AdminDashboard = ({ user }) => {
             prev ? { ...prev, isVerified: true } : null,
           );
         }
+        refreshDashboardStats();
       })
       .finally(() => setVerifyLoading(null));
   };
@@ -114,7 +178,9 @@ const AdminDashboard = ({ user }) => {
                   <p className="text-sm font-medium text-slate-500">
                     Total Users
                   </p>
-                  <p className="mt-2 text-3xl font-bold text-slate-900">0</p>
+                  <p className="mt-2 text-3xl font-bold text-slate-900">
+                    {statsLoading ? "—" : dashboardStats.totalUsers}
+                  </p>
                 </div>
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
                   <FontAwesomeIcon
@@ -130,7 +196,9 @@ const AdminDashboard = ({ user }) => {
                   <p className="text-sm font-medium text-slate-500">
                     Total Vehicles
                   </p>
-                  <p className="mt-2 text-3xl font-bold text-slate-900">0</p>
+                  <p className="mt-2 text-3xl font-bold text-slate-900">
+                    {statsLoading ? "—" : dashboardStats.totalVehicles}
+                  </p>
                 </div>
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-100">
                   <FontAwesomeIcon
@@ -162,7 +230,9 @@ const AdminDashboard = ({ user }) => {
                   <p className="text-sm font-medium text-slate-500">
                     Pending Actions
                   </p>
-                  <p className="mt-2 text-3xl font-bold text-slate-900">0</p>
+                  <p className="mt-2 text-3xl font-bold text-slate-900">
+                    {statsLoading ? "—" : dashboardStats.pendingActions}
+                  </p>
                 </div>
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-100">
                   <FontAwesomeIcon
@@ -227,6 +297,84 @@ const AdminDashboard = ({ user }) => {
                 </div>
               </div>
             </div>
+          </div>
+        </>
+      );
+    }
+
+    if (activeSection === "notifications") {
+      const formatDate = (d) => {
+        if (!d) return "—";
+        const date = new Date(d);
+        return date.toLocaleString(undefined, {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      };
+      return (
+        <>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-slate-900">Recent notifications</h2>
+            {notifications.some((n) => !n.isRead) && (
+              <button
+                type="button"
+                onClick={() => {
+                  notificationsAPI.markAllAsRead().then(() => {
+                    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+                    setUnreadCount(0);
+                  });
+                }}
+                className="cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Mark all as read
+              </button>
+            )}
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            {notificationsLoading ? (
+              <div className="p-12 text-center text-slate-500">Loading notifications...</div>
+            ) : notifications.length === 0 ? (
+              <div className="p-12 text-center text-slate-500">No notifications yet.</div>
+            ) : (
+              <ul className="divide-y divide-slate-200">
+                {notifications.map((n) => (
+                  <li
+                    key={n.id}
+                    className={`flex items-start gap-4 px-4 py-4 ${!n.isRead ? "bg-red-50/50" : ""}`}
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100">
+                      <FontAwesomeIcon icon={faBell} className="h-5 w-5 text-red-600" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-slate-900">{n.title}</p>
+                      {n.message && (
+                        <p className="mt-0.5 text-sm text-slate-600">{n.message}</p>
+                      )}
+                      <p className="mt-1 text-xs text-slate-400">{formatDate(n.createdAt)}</p>
+                    </div>
+                    {!n.isRead && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          notificationsAPI.markAsRead(n.id).then(() => {
+                            setNotifications((prev) =>
+                              prev.map((x) => (x.id === n.id ? { ...x, isRead: true } : x))
+                            );
+                            setUnreadCount((c) => Math.max(0, c - 1));
+                          });
+                        }}
+                        className="cursor-pointer rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
+                      >
+                        Mark read
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </>
       );
@@ -369,7 +517,7 @@ const AdminDashboard = ({ user }) => {
     <div className="flex min-h-screen flex-col bg-slate-50">
       <AdminNavbar user={user} onLogout={handleLogout} pageTitle={pageTitle} />
       <div className="flex flex-1">
-        <AdminSidebar activeKey={activeSection} onSelect={setActiveSection} />
+        <AdminSidebar activeKey={activeSection} onSelect={setActiveSection} unreadCount={unreadCount} />
         <main className="min-w-0 flex-1 px-4 py-12 pl-14 sm:px-6 lg:pl-8">
           <div className="mx-auto max-w-5xl">{renderContent()}</div>
         </main>

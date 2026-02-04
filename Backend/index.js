@@ -5,6 +5,7 @@ import { client } from "./db/index.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import favoriteRoutes from "./routes/favoriteRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
 import vehicleRoutes from "./routes/vehicleRoutes.js";
 import { verifyMailConnection } from "./services/emailService.js";
@@ -20,6 +21,7 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 app.use("/api", authRoutes);
 app.use("/api", favoriteRoutes);
+app.use("/api", notificationRoutes);
 app.use("/api", uploadRoutes);
 app.use("/api", vehicleRoutes);
 app.use("/api", adminRoutes);

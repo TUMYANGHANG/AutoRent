@@ -19,6 +19,7 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "migrate:favorites": "node scripts/run-favorites-migration.js",
+    "migrate:notifications": "node scripts/run-notifications-migration.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

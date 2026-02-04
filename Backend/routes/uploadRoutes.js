@@ -2,9 +2,10 @@ import express from "express";
 import {
   uploadDocumentsController,
   uploadImagesController,
+  uploadSingleImageController,
 } from "../controller/uploadController.js";
 import { authenticateToken } from "../middleware/auth.js";
-import { uploadDocuments, uploadImages } from "../middleware/upload.js";
+import { uploadDocuments, uploadImages, uploadSingleImage } from "../middleware/upload.js";
 
 const router = express.Router();
 
@@ -50,6 +51,26 @@ router.post(
     });
   },
   uploadDocumentsController
+);
+
+// POST /api/upload/image – multipart form "file" (single image, all authenticated users)
+router.post(
+  "/upload/image",
+  authenticateToken,
+  (req, res, next) => {
+    uploadSingleImage(req, res, (err) => {
+      if (err) {
+        const code = err.code === "LIMIT_FILE_SIZE" ? 400 : 500;
+        const message =
+          err.code === "LIMIT_FILE_SIZE"
+            ? "File too large (max 5MB)"
+            : err.message || "Upload error";
+        return res.status(code).json({ success: false, message });
+      }
+      next();
+    });
+  },
+  uploadSingleImageController
 );
 
 export default router;

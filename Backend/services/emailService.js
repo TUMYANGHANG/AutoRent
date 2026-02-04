@@ -145,9 +145,136 @@ const sendPasswordResetOTPEmail = async (email, otp) => {
   }
 };
 
+/**
+ * Send "new vehicle submitted for review" to admin
+ * @param {string} adminEmail
+ * @param {string} vehicleName - e.g. "Honda City"
+ * @param {string} [ownerName] - e.g. "John Doe"
+ * @returns {Promise<Object>}
+ */
+const sendNewVehicleSubmittedToAdmin = async (adminEmail, vehicleName, ownerName = "An owner") => {
+  try {
+    const transporter = createTransporter();
+    const subject = "New Vehicle Submitted for Review - AutoRent";
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>New Vehicle</title></head>
+      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background-color: #f4f4f4; padding: 20px; border-radius: 5px;">
+          <h2 style="color: #333;">New Vehicle Submitted for Review</h2>
+          <p><strong>${vehicleName}</strong> has been submitted by <strong>${ownerName}</strong> and is pending your approval.</p>
+          <p>Please log in to the Admin Dashboard to review and approve or reject this vehicle.</p>
+          <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+          <p style="color: #666; font-size: 12px;">This is an automated email from AutoRent.</p>
+        </div>
+      </body>
+      </html>
+    `;
+    const text = `New Vehicle Submitted for Review\n\n${vehicleName} has been submitted by ${ownerName}. Please log in to the Admin Dashboard to review.`;
+    const info = await transporter.sendMail({
+      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+      to: adminEmail,
+      subject,
+      html,
+      text,
+    });
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error("Error sending new vehicle notification to admin:", error);
+    throw new Error(`Failed to send email: ${error.message}`);
+  }
+};
+
+/**
+ * Send "vehicle approved" to owner
+ * @param {string} ownerEmail
+ * @param {string} vehicleName
+ * @returns {Promise<Object>}
+ */
+const sendVehicleApprovedToOwner = async (ownerEmail, vehicleName) => {
+  try {
+    const transporter = createTransporter();
+    const subject = "Your Vehicle Has Been Approved - AutoRent";
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Vehicle Approved</title></head>
+      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background-color: #f4f4f4; padding: 20px; border-radius: 5px;">
+          <h2 style="color: #16a34a;">Your Vehicle Has Been Approved</h2>
+          <p>Good news! <strong>${vehicleName}</strong> has been approved by our admin and is now listed for rent.</p>
+          <p>Renters can now view and book your vehicle from the platform.</p>
+          <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+          <p style="color: #666; font-size: 12px;">This is an automated email from AutoRent.</p>
+        </div>
+      </body>
+      </html>
+    `;
+    const text = `Your vehicle "${vehicleName}" has been approved and is now listed for rent.`;
+    const info = await transporter.sendMail({
+      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+      to: ownerEmail,
+      subject,
+      html,
+      text,
+    });
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error("Error sending vehicle approved to owner:", error);
+    throw new Error(`Failed to send email: ${error.message}`);
+  }
+};
+
+/**
+ * Send "vehicle rejected" to owner
+ * @param {string} ownerEmail
+ * @param {string} vehicleName
+ * @param {string} [reason] - optional rejection reason
+ * @returns {Promise<Object>}
+ */
+const sendVehicleRejectedToOwner = async (ownerEmail, vehicleName, reason = "") => {
+  try {
+    const transporter = createTransporter();
+    const subject = "Vehicle Not Approved - AutoRent";
+    const reasonBlock = reason ? `<p><strong>Reason:</strong> ${reason}</p>` : "";
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Vehicle Not Approved</title></head>
+      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background-color: #f4f4f4; padding: 20px; border-radius: 5px;">
+          <h2 style="color: #dc2626;">Vehicle Not Approved</h2>
+          <p>Unfortunately, <strong>${vehicleName}</strong> was not approved for listing at this time.</p>
+          ${reasonBlock}
+          <p>You can log in to your Owner Dashboard to view details or submit a new vehicle.</p>
+          <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+          <p style="color: #666; font-size: 12px;">This is an automated email from AutoRent.</p>
+        </div>
+      </body>
+      </html>
+    `;
+    const text = `Your vehicle "${vehicleName}" was not approved.${reason ? ` Reason: ${reason}` : ""} Log in to your dashboard for more details.`;
+    const info = await transporter.sendMail({
+      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+      to: ownerEmail,
+      subject,
+      html,
+      text,
+    });
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error("Error sending vehicle rejected to owner:", error);
+    throw new Error(`Failed to send email: ${error.message}`);
+  }
+};
+
 export {
+  sendNewVehicleSubmittedToAdmin,
   sendOTPEmail,
   sendPasswordResetOTPEmail,
+  sendVehicleApprovedToOwner,
+  sendVehicleRejectedToOwner,
   verifyMailConnection,
 };
 

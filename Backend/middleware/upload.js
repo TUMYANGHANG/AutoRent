@@ -35,3 +35,10 @@ export const uploadDocuments = multer({
   fileFilter: docFileFilter,
   limits: { fileSize: DOC_MAX_FILE_SIZE },
 }).array("documents", 5);
+
+// Single image upload (for profile pictures, license images, etc.)
+export const uploadSingleImage = multer({
+  storage: multer.memoryStorage(),
+  fileFilter,
+  limits: { fileSize: MAX_FILE_SIZE },
+}).single("file");

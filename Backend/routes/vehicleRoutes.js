@@ -1,5 +1,6 @@
 import express from "express";
 import {
+  getAdminStatsController,
   getAllVehiclesController,
   getVehicleByIdAdminController,
   updateVehicleVerifyController,
@@ -36,7 +37,8 @@ router.post("/vehicles/:id/images", validateAddVehicleImages, addVehicleImagesCo
 
 
 
-// —— Admin vehicle routes ——
+// —— Admin routes ——
+router.get("/admin/stats", getAdminStatsController);
 router.get("/admin/vehicles", getAllVehiclesController);
 router.get("/admin/vehicles/:id", getVehicleByIdAdminController);
 router.patch("/admin/vehicles/:id/verify", updateVehicleVerifyController);

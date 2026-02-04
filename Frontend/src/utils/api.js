@@ -20,9 +20,25 @@ const apiRequest = async (endpoint, options = {}) => {
 
   try {
     const response = await fetch(url, config);
-    const data = await response.json();
+    
+    // Handle non-JSON responses (like HTML error pages)
+    let data;
+    const contentType = response.headers.get("content-type");
+    if (contentType && contentType.includes("application/json")) {
+      data = await response.json();
+    } else {
+      const text = await response.text();
+      if (response.status === 401 || response.status === 403) {
+        throw new Error("Access token required");
+      }
+      throw new Error(text || "An error occurred");
+    }
 
     if (!response.ok) {
+      // Handle 401/403 - redirect to login
+      if (response.status === 401 || response.status === 403) {
+        throw new Error("Access token required");
+      }
       // Handle validation errors with detailed messages
       if (data.errors && Array.isArray(data.errors)) {
         throw new Error(data.errors.join(", "));
@@ -95,58 +111,6 @@ export const authAPI = {
   },
 };
 
-// User Details API
-export const userDetailsAPI = {
-  // Get user details by user ID
-  getUserDetails: async (userId) => {
-    return apiRequest(`/user-details/${userId}`, {
-      method: "GET",
-    });
-  },
-
-  // Create user details
-  createUserDetails: async (userId, detailsData) => {
-    return apiRequest("/user-details", {
-      method: "POST",
-      body: JSON.stringify({
-        userId,
-        phoneNumber: detailsData.phoneNumber,
-        dateOfBirth: detailsData.dateOfBirth,
-        profilePicture: detailsData.profilePicture,
-        address: detailsData.address,
-        city: detailsData.city,
-        licenseNumber: detailsData.licenseNumber,
-        licenseExpiry: detailsData.licenseExpiry,
-        licenseImage: detailsData.licenseImage,
-      }),
-    });
-  },
-
-  // Update user details
-  updateUserDetails: async (userId, detailsData) => {
-    return apiRequest(`/user-details/${userId}`, {
-      method: "PUT",
-      body: JSON.stringify({
-        phoneNumber: detailsData.phoneNumber,
-        dateOfBirth: detailsData.dateOfBirth,
-        profilePicture: detailsData.profilePicture,
-        address: detailsData.address,
-        city: detailsData.city,
-        licenseNumber: detailsData.licenseNumber,
-        licenseExpiry: detailsData.licenseExpiry,
-        licenseImage: detailsData.licenseImage,
-      }),
-    });
-  },
-
-  // Verify license (Admin only)
-  verifyLicense: async (userId, isVerified) => {
-    return apiRequest(`/user-details/${userId}/verify-license`, {
-      method: "PATCH",
-      body: JSON.stringify({ isVerified }),
-    });
-  },
-};
 
 // Vehicle API (owner only)
 export const vehicleAPI = {
@@ -265,8 +229,37 @@ export const favoritesAPI = {
   },
 };
 
+// Notifications API (auth required – admin and owner use same endpoints)
+export const notificationsAPI = {
+  getNotifications: async (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    const url = qs ? `/notifications?${qs}` : "/notifications";
+    const res = await apiRequest(url, { method: "GET" });
+    return res?.data ?? [];
+  },
+
+  getUnreadCount: async () => {
+    const res = await apiRequest("/notifications/unread-count", { method: "GET" });
+    return res?.data?.count ?? 0;
+  },
+
+  markAsRead: async (notificationId) => {
+    return apiRequest(`/notifications/${notificationId}/read`, {
+      method: "PATCH",
+    });
+  },
+
+  markAllAsRead: async () => {
+    return apiRequest("/notifications/read-all", { method: "PATCH" });
+  },
+};
+
 // Admin API (admin only)
 export const adminAPI = {
+  getStats: async () => {
+    return apiRequest("/admin/stats", { method: "GET" });
+  },
+
   getAllVehicles: async (params = {}) => {
     const qs = new URLSearchParams(params).toString();
     const url = qs ? `/admin/vehicles?${qs}` : "/admin/vehicles";
@@ -279,6 +272,35 @@ export const adminAPI = {
 
   updateVehicleVerify: async (vehicleId, isVerified) => {
     return apiRequest(`/admin/vehicles/${vehicleId}/verify`, {
+      method: "PATCH",
+      body: JSON.stringify({ isVerified }),
+    });
+  },
+};
+
+// User Details API (auth required)
+export const userDetailsAPI = {
+  getUserDetails: async (userId) => {
+    return apiRequest(`/user-details/${userId}`, { method: "GET" });
+  },
+
+  createUserDetails: async (userId, detailsData) => {
+    return apiRequest("/user-details", {
+      method: "POST",
+      body: JSON.stringify({ userId, ...detailsData }),
+    });
+  },
+
+  updateUserDetails: async (userId, detailsData) => {
+    return apiRequest(`/user-details/${userId}`, {
+      method: "PUT",
+      body: JSON.stringify(detailsData),
+    });
+  },
+
+  // Verify license (Admin only)
+  verifyLicense: async (userId, isVerified) => {
+    return apiRequest(`/user-details/${userId}/verify-license`, {
       method: "PATCH",
       body: JSON.stringify({ isVerified }),
     });

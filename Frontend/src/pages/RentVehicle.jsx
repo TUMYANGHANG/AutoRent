@@ -8,7 +8,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { favoritesAPI, getAuthToken, renterAPI } from "../utils/api.js";
 
 const formatPrice = (value) => {
@@ -112,6 +112,7 @@ export const VehicleCard = ({ vehicle, isFavorite = false, onFavoriteClick }) =>
 };
 
 const RentVehicle = () => {
+  const navigate = useNavigate();
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -128,7 +129,19 @@ const RentVehicle = () => {
         const res = await renterAPI.getVehiclesForRent();
         if (!cancelled && res?.data) setVehicles(res.data);
       } catch (err) {
-        if (!cancelled) setError(err?.message ?? "Failed to load vehicles");
+        const errorMessage = err?.message ?? "Failed to load vehicles";
+        if (!cancelled) {
+          if (
+            errorMessage.includes("Access token required") ||
+            errorMessage.includes("Unauthorized") ||
+            errorMessage.includes("401") ||
+            err?.response?.status === 401
+          ) {
+            navigate("/", { state: { openLogin: true } });
+          } else {
+            setError(errorMessage);
+          }
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -137,7 +150,7 @@ const RentVehicle = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [navigate]);
 
   const filterOptions = useMemo(() => {
     const types = new Set(["all"]);

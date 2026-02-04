@@ -110,4 +110,47 @@ const uploadDocumentsController = async (req, res) => {
   }
 };
 
-export { uploadImagesController, uploadDocumentsController };
+/**
+ * Upload a single image (for profile pictures, license images, etc.)
+ * Expects multipart/form-data with field "file" (single file)
+ * Available to all authenticated users (renter, owner, admin)
+ */
+const uploadSingleImageController = async (req, res) => {
+  try {
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({
+        success: false,
+        message: "No image provided. Use field name 'file' with a single image file.",
+      });
+    }
+
+    const url = await uploadImage(file.buffer, file.mimetype);
+
+    res.status(200).json({
+      success: true,
+      data: { url },
+    });
+  } catch (error) {
+    console.error("Upload single image error:", error);
+    if (error.message?.includes("Cloudinary is not configured")) {
+      return res.status(503).json({
+        success: false,
+        message: "Image upload is not configured",
+      });
+    }
+    if (error.message?.includes("Invalid file type") || error.code === "LIMIT_FILE_SIZE") {
+      return res.status(400).json({
+        success: false,
+        message: error.message || "Invalid file",
+      });
+    }
+    res.status(500).json({
+      success: false,
+      message: "Failed to upload image",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
+
+export { uploadImagesController, uploadDocumentsController, uploadSingleImageController };

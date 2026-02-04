@@ -1,4 +1,13 @@
 import {
+  createNotification,
+  getUserById,
+  getUsersByRole,
+  NOTIFICATION_TYPES,
+} from "../services/notificationService.js";
+import {
+  sendNewVehicleSubmittedToAdmin,
+} from "../services/emailService.js";
+import {
   addVehicleImages,
   createVehicle,
   deleteVehicle,
@@ -98,6 +107,29 @@ const addVehicleController = async (req, res) => {
         success: false,
         message: "Failed to create vehicle",
       });
+    }
+
+    const vehicleName = `${vehicle.brand ?? ""} ${vehicle.model ?? ""}`.trim() || "A vehicle";
+    const owner = await getUserById(userId);
+    const ownerName = owner?.firstName && owner?.lastName
+      ? `${owner.firstName} ${owner.lastName}`
+      : owner?.firstName || owner?.email || "An owner";
+
+    const admins = await getUsersByRole("admin");
+    for (const admin of admins) {
+      try {
+        await createNotification({
+          recipientUserId: admin.id,
+          type: NOTIFICATION_TYPES.NEW_VEHICLE_SUBMITTED,
+          title: "New vehicle submitted for review",
+          message: `${ownerName} added "${vehicleName}". Please review in the Admin Dashboard.`,
+          vehicleId: vehicle.id,
+          actorUserId: userId,
+        });
+        await sendNewVehicleSubmittedToAdmin(admin.email, vehicleName, ownerName);
+      } catch (err) {
+        console.error("Notification/email to admin failed:", err);
+      }
     }
 
     res.status(201).json({

@@ -30,3 +30,6 @@ yarn-error.log*
 
 # Optional: if you have specific MongoDB files to ignore
 *.lock
+collector
+.collector
+

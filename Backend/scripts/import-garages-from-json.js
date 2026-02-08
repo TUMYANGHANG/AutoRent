@@ -16,7 +16,7 @@ const __dirname = dirname(__filename);
 // Path to the JSON file - adjust if your file is in a different location
 // This assumes the file is at e:/garage_locator.garages.json
 // If it's elsewhere, update this path
-const JSON_FILE_PATH = process.env.GARAGES_JSON_PATH || join(__dirname, "../../../garage_locator.garages.json");
+const JSON_FILE_PATH = process.env.GARAGES_JSON_PATH || join(__dirname, "../garage_locator.garages.json");
 
 function loadGaragesFromJSON() {
   try {

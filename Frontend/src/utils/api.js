@@ -205,6 +205,29 @@ export const renterAPI = {
   },
 };
 
+// Garages API (map + crowd locating)
+export const garagesAPI = {
+  /**
+   * Get garages for current map viewport using bbox = "west,south,east,north".
+   * Returns { success, data } shape from backend.
+   */
+  getForMap: async (bbox) => {
+    const encoded = encodeURIComponent(bbox);
+    return apiRequest(`/garages/map?bbox=${encoded}`, { method: "GET" });
+  },
+
+  /**
+   * Create a new garage (renter crowd locating).
+   * Requires auth token for renter.
+   */
+  create: async (garageData) => {
+    return apiRequest("/garages", {
+      method: "POST",
+      body: JSON.stringify(garageData),
+    });
+  },
+};
+
 // Favorites API (auth required)
 export const favoritesAPI = {
   getIds: async () => {

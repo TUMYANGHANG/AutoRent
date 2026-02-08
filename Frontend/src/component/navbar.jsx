@@ -40,6 +40,7 @@ const desktopLinks = [
   { label: "Home", href: "/", type: "link" },
   { label: "Services", href: "/services", type: "link" },
   { label: "Rent a Vehicle", href: "/vehicles", type: "link" },
+  { label: "Garages Map", href: "/garages-map", type: "link" },
   { label: "FAQ", href: "/faq", type: "link" },
   { label: "Contact", href: "/contact", type: "link" },
 ];
@@ -58,6 +59,8 @@ const Navbar = ({ isAuthenticated, onOpenLogin, onOpenSignUp, onLogout }) => {
       setActive("Services");
     } else if (location.pathname === "/vehicles") {
       setActive("Rent a Vehicle");
+    } else if (location.pathname === "/garages-map") {
+      setActive("Garages Map");
     } else if (location.pathname === "/faq") {
       setActive("FAQ");
     } else if (location.pathname === "/contact") {

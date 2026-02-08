@@ -5,4 +5,5 @@ export { favorites } from "./favorites.js";
 export { vehicleStatusEnum, vehicles } from "./vehicle.js";
 export { vehicleImages } from "./vehicleImage.js";
 export { notifications } from "./notifications.js";
+export { garages } from "./garage.js";
 

@@ -8,6 +8,7 @@ import favoriteRoutes from "./routes/favoriteRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
 import vehicleRoutes from "./routes/vehicleRoutes.js";
+import garageRoutes from "./routes/garageRoutes.js";
 import { verifyMailConnection } from "./services/emailService.js";
 
 const app = express();
@@ -24,6 +25,7 @@ app.use("/api", favoriteRoutes);
 app.use("/api", notificationRoutes);
 app.use("/api", uploadRoutes);
 app.use("/api", vehicleRoutes);
+app.use("/api", garageRoutes);
 app.use("/api", adminRoutes);
 
 // Health check

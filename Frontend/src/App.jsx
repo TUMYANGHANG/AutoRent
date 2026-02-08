@@ -15,6 +15,7 @@ import SignUpModal from "./component/SignUpModal.jsx";
 import Contact from "./pages/Contact.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Favorites from "./pages/Favorites.jsx";
+import GaragesMap from "./pages/GaragesMap.jsx";
 import Home from "./pages/Home.jsx";
 import PrivacyPolicy from "./pages/PrivacyPolicy.jsx";
 import RentVehicle from "./pages/RentVehicle.jsx";
@@ -100,6 +101,7 @@ const AppContent = () => {
         <Route path="/services" element={<Services />} />
         <Route path="/vehicles" element={<RentVehicle />} />
         <Route path="/favorites" element={<Favorites />} />
+        <Route path="/garages-map" element={<GaragesMap />} />
         <Route path="/vehicles/:id" element={<VehicleDetail />} />
         <Route path="/vehicles/:id/book" element={<VehicleBook />} />
         <Route path="/faq" element={<FAQ />} />

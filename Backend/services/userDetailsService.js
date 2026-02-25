@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db } from "../db/index.js";
-import { userDetails } from "../schema/index.js";
+import { userDetails, users } from "../schema/index.js";
 
 /**
  * Get user details by user ID
@@ -90,6 +90,14 @@ const updateUserDetails = async (userId, detailsData) => {
     .set(updateData)
     .where(eq(userDetails.userId, userId))
     .returning();
+
+  // When renter (or any user) edits their profile, reset profile verification so admin must review again
+  if (updatedDetails) {
+    await db
+      .update(users)
+      .set({ isProfileVerified: false, updatedAt: new Date() })
+      .where(eq(users.id, userId));
+  }
 
   return updatedDetails || null;
 };

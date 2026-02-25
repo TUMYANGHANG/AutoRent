@@ -424,8 +424,51 @@ const resetPassword = async (req, res) => {
   }
 };
 
+/**
+ * GET /auth/me – return current user from token (fresh from DB, includes isProfileVerified).
+ */
+const getMe = async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Access token required",
+      });
+    }
+
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const { password: _, otp: __, otpExpiresAt: ___, ...userResponse } = user;
+
+    res.status(200).json({
+      success: true,
+      user: userResponse,
+    });
+  } catch (error) {
+    console.error("Get me error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
+
 export {
   forgotPassword,
+  getMe,
   login,
   register,
   resendOTP,

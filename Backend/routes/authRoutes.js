@@ -1,6 +1,7 @@
 import express from "express";
 import {
   forgotPassword,
+  getMe,
   login,
   register,
   resendOTP,
@@ -47,6 +48,9 @@ router.post("/auth/verify-otp", validateOTPVerification, verifyOTPForReset);
 
 // Reset password: verify OTP (clears it) and set new password
 router.post("/auth/reset-password", validateResetPassword, resetPassword);
+
+// Get current user (auth required; returns fresh user including isProfileVerified)
+router.get("/auth/me", authenticateToken, getMe);
 
 // ==================== User Details Routes ====================
 

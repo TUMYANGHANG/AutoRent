@@ -1,5 +1,6 @@
 import {
   faCar,
+  faExclamationTriangle,
   faGasPump,
   faGears,
   faHeart,
@@ -9,7 +10,7 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { favoritesAPI, getAuthToken, renterAPI } from "../utils/api.js";
+import { authAPI, getAuthToken, renterAPI } from "../utils/api.js";
 
 const formatPrice = (value) => {
   if (value == null || value === "") return "—";
@@ -119,6 +120,21 @@ const RentVehicle = () => {
   const [filterType, setFilterType] = useState("all");
   const [filterFuel, setFilterFuel] = useState("all");
   const [filterTransmission, setFilterTransmission] = useState("all");
+  const [currentUser, setCurrentUser] = useState(null);
+  const isAuthenticated = !!getAuthToken();
+  const isRenterUnverified =
+    isAuthenticated &&
+    currentUser?.role === "renter" &&
+    currentUser?.isProfileVerified === false;
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let cancelled = false;
+    authAPI.me().then((u) => {
+      if (!cancelled) setCurrentUser(u ?? null);
+    }).catch(() => { if (!cancelled) setCurrentUser(null); });
+    return () => { cancelled = true; };
+  }, [isAuthenticated]);
 
   useEffect(() => {
     let cancelled = false;
@@ -192,6 +208,17 @@ const RentVehicle = () => {
 
   return (
     <main className="min-h-screen bg-[#05070b]">
+      {isRenterUnverified && (
+        <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-200">
+            <FontAwesomeIcon icon={faExclamationTriangle} className="h-5 w-5 shrink-0" />
+            <p className="text-sm">
+              Complete your profile and get it verified by admin to book or add vehicles to favorites.{" "}
+              <Link to="/dashboard" className="font-semibold underline hover:text-amber-100">Go to dashboard</Link>
+            </p>
+          </div>
+        </div>
+      )}
       <section className="sticky top-20 z-40 border-b border-white/10 bg-[#05070b]/95 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-center gap-4 sm:gap-6">

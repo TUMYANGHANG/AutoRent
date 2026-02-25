@@ -93,7 +93,7 @@ const Navbar = ({ isAuthenticated, onOpenLogin, onOpenSignUp, onLogout }) => {
             </Link>
 
             {/* Desktop nav */}
-            <div className="absolute left-[48%] hidden -translate-x-1/2 items-center justify-center md:flex">
+            <div className="absolute left-[43%] hidden -translate-x-1/2 items-center justify-center md:flex">
               <div className="flex items-center gap-2 lg:gap-4">
                 {desktopLinks.map((l) => {
                   if (l.type === "dropdown") {

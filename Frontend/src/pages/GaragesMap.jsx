@@ -3,11 +3,22 @@ import maplibregl from "maplibre-gl";
 import { useEffect, useRef, useState } from "react";
 import { garagesAPI } from "../utils/api.js";
 
+// Same default styles as mapcn (CARTO basemap – no API key required)
+const CARTO_STYLES = {
+  dark: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
+  light: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+};
+
 const INITIAL_VIEW_STATE = {
   longitude: 84.0, // Approx center of Nepal
   latitude: 28.0,
   zoom: 10,
 };
+
+/** Google Street View URL for a given lat/lng (opens in new tab) */
+function streetViewUrl(lat, lng) {
+  return `https://www.google.com/maps?layer=c&cbll=${lat},${lng}&cbp=0,0,0,0,0,0`;
+}
 
 const GaragesMap = () => {
   const mapContainerRef = useRef(null);
@@ -28,6 +39,8 @@ const GaragesMap = () => {
     phone: "",
     type: "",
   });
+  const [mapStyleMode, setMapStyleMode] = useState("dark"); // "dark" | "light"
+  const [styleLoadedKey, setStyleLoadedKey] = useState(0);
 
   // Initialize map once
   useEffect(() => {
@@ -35,7 +48,7 @@ const GaragesMap = () => {
 
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
-      style: "https://demotiles.maplibre.org/style.json",
+      style: CARTO_STYLES[mapStyleMode],
       center: [INITIAL_VIEW_STATE.longitude, INITIAL_VIEW_STATE.latitude],
       zoom: INITIAL_VIEW_STATE.zoom,
     });
@@ -101,7 +114,6 @@ const GaragesMap = () => {
     map.on("load", fetchForBounds);
     map.on("moveend", fetchForBounds);
 
-    // Click handler will be added/removed based on showCrowdLocateForm state
     return () => {
       map.remove();
       mapRef.current = null;
@@ -128,17 +140,48 @@ const GaragesMap = () => {
     };
   }, [showCrowdLocateForm]);
 
-  // Render garages as markers
+  const prevMapStyleModeRef = useRef(mapStyleMode);
+
+  // Switch map style when user toggles dark/light (skip on initial mount)
+  useEffect(() => {
+    if (!mapRef.current || prevMapStyleModeRef.current === mapStyleMode) return;
+    prevMapStyleModeRef.current = mapStyleMode;
+    const map = mapRef.current;
+    map.setStyle(CARTO_STYLES[mapStyleMode]);
+    const onStyleData = () => {
+      if (map.isStyleLoaded()) setStyleLoadedKey((k) => k + 1);
+    };
+    map.on("styledata", onStyleData);
+    return () => map.off("styledata", onStyleData);
+  }, [mapStyleMode]);
+
+  // Re-add user location marker after style change (setStyle removes DOM markers)
+  useEffect(() => {
+    if (!mapRef.current || styleLoadedKey === 0) return;
+    const map = mapRef.current;
+    if (!userLocation) return;
+    if (map.__userLocationMarker) map.__userLocationMarker.remove();
+    const userMarker = new maplibregl.Marker({ color: "#3b82f6" })
+      .setLngLat([userLocation.longitude, userLocation.latitude])
+      .setPopup(new maplibregl.Popup().setHTML("<div style='font-weight: 600;'>📍 Your Location</div>"))
+      .addTo(map);
+    map.__userLocationMarker = userMarker;
+  }, [styleLoadedKey, userLocation]);
+
+  // Theme-aware colors for popups: white text on dark map, dark text on light map
+  const popupColors = mapStyleMode === "dark"
+    ? { title: "#fff", secondary: "#d1d5db", muted: "#9ca3af" }
+    : { title: "#111827", secondary: "#4b5563", muted: "#6b7280" };
+
+  // Render garages as markers (re-run after style change so markers persist)
   useEffect(() => {
     if (!mapRef.current) return;
 
     // Remove old markers and their popups
     if (mapRef.current.__garageMarkers) {
       mapRef.current.__garageMarkers.forEach((m) => {
-        // Remove hover popup if it exists
-        if (m._hoverPopup && m._hoverPopup.isOpen()) {
-          m._hoverPopup.remove();
-        }
+        if (m._hoverPopup?.isOpen()) m._hoverPopup.remove();
+        if (m._clickPopup?.isOpen()) m._clickPopup.remove();
         m.remove();
       });
     }
@@ -146,21 +189,46 @@ const GaragesMap = () => {
     const markers = (garages || []).map((garage) => {
       const el = document.createElement("div");
       el.className =
-        "rounded-full bg-orange-500 border-2 border-white w-3 h-3 shadow-[0_0_0_4px_rgba(0,0,0,0.35)] cursor-pointer hover:scale-125 transition-transform";
+        "rounded-full bg-orange-500 border-2 border-white w-3 h-3 shadow-[0_0_0_4px_rgba(0,0,0,0.35)] cursor-pointer transition-shadow hover:shadow-[0_0_0_6px_rgba(249,115,22,0.5)]";
 
       const lat = Number(garage.latitude);
       const lng = Number(garage.longitude);
-      
-      // Google Maps URL for redirecting on click
-      const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+      const garageName = garage.name ?? "Garage";
 
-      // Create hover tooltip content
-      const tooltipContent = `
-        <div style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 12px; min-width: 180px; max-width: 250px;">
-          <div style="font-weight: 600; margin-bottom: 4px; color: #fff; font-size: 13px;">${garage.name ?? "Garage"}</div>
+      const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+      const streetViewLink = streetViewUrl(lat, lng);
+
+      // Click popup: theme-aware text colors
+      const clickPopupContent = `
+        <div class="garage-click-popup" style="font-family: system-ui, sans-serif; font-size: 12px; min-width: 200px; padding: 4px;">
+          <div style="font-weight: 600; margin-bottom: 6px; color: ${popupColors.title};">${garageName}</div>
           ${
             garage.address || garage.city
-              ? `<div style="color:#d1d5db; margin-bottom: 3px; font-size: 11px; line-height: 1.3;">
+              ? `<div style="color:${popupColors.secondary}; margin-bottom: 8px; font-size: 11px;">${[garage.address, garage.city, garage.district, garage.province].filter(Boolean).join(", ")}</div>`
+              : ""
+          }
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <a href="${googleMapsUrl}" target="_blank" rel="noopener noreferrer" style="display: block; text-align: center; padding: 6px 10px; background: #3b82f6; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500;">Open in Google Maps</a>
+            <a href="${streetViewLink}" target="_blank" rel="noopener noreferrer" style="display: block; text-align: center; padding: 6px 10px; background: #22c55e; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500;">Street View</a>
+          </div>
+        </div>
+      `;
+
+      const clickPopup = new maplibregl.Popup({
+        offset: 12,
+        maxWidth: "260px",
+        closeButton: true,
+        closeOnClick: false,
+        className: "garage-click-popup-container",
+      }).setHTML(clickPopupContent);
+
+      // Hover tooltip: garage name prominent, theme-aware colors, pointer-events none so it doesn’t steal hover
+      const tooltipContent = `
+        <div class="garage-hover-tooltip-inner" style="pointer-events: none; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 12px; min-width: 180px; max-width: 250px;">
+          <div style="font-weight: 600; margin-bottom: 4px; color: ${popupColors.title}; font-size: 13px;">${garageName}</div>
+          ${
+            garage.address || garage.city
+              ? `<div style="color:${popupColors.secondary}; margin-bottom: 3px; font-size: 11px; line-height: 1.3;">
                   ${[garage.address, garage.city, garage.district, garage.province]
                     .filter(Boolean)
                     .join(", ")}
@@ -169,20 +237,19 @@ const GaragesMap = () => {
           }
           ${
             garage.phone
-              ? `<div style="color:#9ca3af; font-size: 11px; margin-bottom: 2px;">📞 ${garage.phone}</div>`
+              ? `<div style="color:${popupColors.muted}; font-size: 11px; margin-bottom: 2px;">📞 ${garage.phone}</div>`
               : ""
           }
           ${
             garage.openingHours
-              ? `<div style="color:#9ca3af; font-size: 10px; margin-top: 4px;">🕐 ${garage.openingHours}</div>`
+              ? `<div style="color:${popupColors.muted}; font-size: 10px; margin-top: 4px;">🕐 ${garage.openingHours}</div>`
               : ""
           }
         </div>
       `;
 
-      // Create hover tooltip popup
       const hoverPopup = new maplibregl.Popup({
-        offset: 12,
+        offset: [0, -8],
         maxWidth: "250px",
         closeButton: false,
         closeOnClick: false,
@@ -192,40 +259,49 @@ const GaragesMap = () => {
 
       const marker = new maplibregl.Marker(el)
         .setLngLat([lng, lat])
+        .setPopup(clickPopup)
         .addTo(mapRef.current);
 
-      // Store popup reference on marker for cleanup
       marker._hoverPopup = hoverPopup;
+      marker._clickPopup = clickPopup;
 
-      // Add hover events
+      let hoverOpenId = null;
+      let hoverCloseId = null;
       el.addEventListener("mouseenter", () => {
-        if (!hoverPopup.isOpen()) {
-          hoverPopup.setLngLat([lng, lat]).addTo(mapRef.current);
+        if (hoverCloseId) {
+          clearTimeout(hoverCloseId);
+          hoverCloseId = null;
         }
+        hoverOpenId = setTimeout(() => {
+          if (!hoverPopup.isOpen() && !clickPopup.isOpen()) {
+            hoverPopup.setLngLat([lng, lat]).addTo(mapRef.current);
+          }
+          hoverOpenId = null;
+        }, 80);
       });
 
       el.addEventListener("mouseleave", () => {
-        if (hoverPopup.isOpen()) {
-          hoverPopup.remove();
+        if (hoverOpenId) {
+          clearTimeout(hoverOpenId);
+          hoverOpenId = null;
         }
+        hoverCloseId = setTimeout(() => {
+          if (hoverPopup.isOpen()) hoverPopup.remove();
+          hoverCloseId = null;
+        }, 150);
       });
 
-      // Add click event to redirect to Google Maps
       el.addEventListener("click", (e) => {
         e.stopPropagation();
-        // Close hover popup if open
-        if (hoverPopup.isOpen()) {
-          hoverPopup.remove();
-        }
-        // Redirect to Google Maps
-        window.open(googleMapsUrl, "_blank", "noopener,noreferrer");
+        if (hoverPopup.isOpen()) hoverPopup.remove();
+        clickPopup.setLngLat([lng, lat]).addTo(mapRef.current);
       });
 
       return marker;
     });
 
     mapRef.current.__garageMarkers = markers;
-  }, [garages]);
+  }, [garages, styleLoadedKey, mapStyleMode]);
 
   const handleFieldChange = (e) => {
     const { name, value } = e.target;
@@ -330,14 +406,36 @@ const GaragesMap = () => {
               Nepal <span className="text-orange-500">Garage Map</span>
             </h1>
             <p className="mt-1 text-sm text-gray-300 md:text-base">
-              Map placeholder - Garage locations will be displayed here once backend is connected.
+              Garage locations on the map. Click a marker for Google Maps &amp; Street View links.
             </p>
           </div>
         </div>
 
         <div className="flex flex-col gap-4">
           {/* Action buttons */}
-          <div className="flex justify-end gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setMapStyleMode((m) => (m === "dark" ? "light" : "dark"))}
+              className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-white/20 bg-white/5 px-4 py-2 text-sm font-semibold text-white/90 transition-all duration-300 hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-[#05070b]"
+              title={mapStyleMode === "dark" ? "Switch to light map" : "Switch to dark map"}
+            >
+              {mapStyleMode === "dark" ? (
+                <>
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                  Light map
+                </>
+              ) : (
+                <>
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                  </svg>
+                  Dark map
+                </>
+              )}
+            </button>
             <button
               type="button"
               onClick={handleLocateMe}

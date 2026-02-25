@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getAuthToken, removeAuthToken } from "../utils/api.js";
+import { authAPI, getAuthToken, removeAuthToken } from "../utils/api.js";
 import AdminDashboard from "./Admin/AdminDashboard.jsx";
 import OwnerDashboard from "./Owner/OwnerDashboard.jsx";
 import RenterDashboard from "./User/RenterDashboard.jsx";
@@ -17,23 +17,36 @@ const Dashboard = () => {
       return;
     }
 
-    // Get user data from localStorage
-    const userData = localStorage.getItem("user");
-    if (userData) {
-      try {
-        const parsedUser = JSON.parse(userData);
-        setUser(parsedUser);
-      } catch (error) {
-        console.error("Error parsing user data:", error);
-        // Clear invalid data
-        localStorage.removeItem("user");
-        removeAuthToken();
-        navigate("/");
-      }
-    } else {
-      // No user data, redirect to home
-      navigate("/");
-    }
+    const applyUser = (u) => {
+      setUser(u);
+      if (u) localStorage.setItem("user", JSON.stringify(u));
+    };
+
+    // Prefer fresh user from API (includes isProfileVerified)
+    authAPI
+      .me()
+      .then((freshUser) => {
+        if (freshUser) {
+          applyUser(freshUser);
+          return;
+        }
+        throw new Error("No user");
+      })
+      .catch(() => {
+        // Fallback to localStorage
+        const userData = localStorage.getItem("user");
+        if (userData) {
+          try {
+            applyUser(JSON.parse(userData));
+          } catch {
+            localStorage.removeItem("user");
+            removeAuthToken();
+            navigate("/");
+          }
+        } else {
+          navigate("/");
+        }
+      });
   }, [navigate]);
 
   if (!user) {

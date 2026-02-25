@@ -7,11 +7,12 @@ import {
   faPeopleGroup,
   faShieldHalved,
   faCalendarCheck,
+  faExclamationTriangle,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { renterAPI, favoritesAPI, getAuthToken } from "../utils/api.js";
+import { authAPI, renterAPI, favoritesAPI, getAuthToken } from "../utils/api.js";
 
 const formatPrice = (value) => {
   if (value == null || value === "") return "—";
@@ -27,7 +28,12 @@ const VehicleDetail = () => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
   const isAuthenticated = !!getAuthToken();
+  const isRenterUnverified =
+    isAuthenticated &&
+    currentUser?.role === "renter" &&
+    currentUser?.isProfileVerified === false;
 
   useEffect(() => {
     let cancelled = false;
@@ -53,6 +59,17 @@ const VehicleDetail = () => {
   useEffect(() => {
     setSelectedImageIndex(0);
   }, [vehicle?.id]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let cancelled = false;
+    authAPI.me().then((u) => {
+      if (!cancelled) setCurrentUser(u ?? null);
+    }).catch(() => {
+      if (!cancelled) setCurrentUser(null);
+    });
+    return () => { cancelled = true; };
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (!isAuthenticated || !id) return;
@@ -248,19 +265,36 @@ const VehicleDetail = () => {
               )}
             </div>
 
+            {isRenterUnverified && (
+              <div className="mb-6 flex items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-200">
+                <FontAwesomeIcon icon={faExclamationTriangle} className="h-5 w-5 shrink-0" />
+                <p className="text-sm">
+                  Complete your profile and get it verified by admin to book this vehicle or add to favorites. Go to your{" "}
+                  <Link to="/dashboard" className="font-semibold underline hover:text-amber-100">dashboard</Link> to complete and submit your profile.
+                </p>
+              </div>
+            )}
+
             <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Link
-                to={`/vehicles/${id}/book`}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-8 py-4 text-lg font-bold text-black shadow-[0_18px_45px_rgba(249,115,22,0.35)] transition-all hover:bg-orange-400 hover:shadow-[0_18px_45px_rgba(249,115,22,0.5)] focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-              >
-                <FontAwesomeIcon icon={faCalendarCheck} className="h-5 w-5" />
-                Book this vehicle
-              </Link>
+              {isRenterUnverified ? (
+                <span className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-8 py-4 text-lg font-semibold text-white/50">
+                  <FontAwesomeIcon icon={faCalendarCheck} className="h-5 w-5" />
+                  Book this vehicle (verify profile first)
+                </span>
+              ) : (
+                <Link
+                  to={`/vehicles/${id}/book`}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-8 py-4 text-lg font-bold text-black shadow-[0_18px_45px_rgba(249,115,22,0.35)] transition-all hover:bg-orange-400 hover:shadow-[0_18px_45px_rgba(249,115,22,0.5)] focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                >
+                  <FontAwesomeIcon icon={faCalendarCheck} className="h-5 w-5" />
+                  Book this vehicle
+                </Link>
+              )}
               {isAuthenticated ? (
                 <button
                   type="button"
                   onClick={handleToggleFavorite}
-                  disabled={favoriteLoading}
+                  disabled={favoriteLoading || isRenterUnverified}
                   className={`inline-flex items-center justify-center gap-2 rounded-xl border px-6 py-4 text-lg font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black disabled:opacity-60 ${
                     isFavorite
                       ? "border-red-500/50 bg-red-500/20 text-red-400 hover:bg-red-500/30"

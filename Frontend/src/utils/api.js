@@ -109,6 +109,12 @@ export const authAPI = {
       body: JSON.stringify({ email, otp, newPassword }),
     });
   },
+
+  // Get current user (auth required; includes isProfileVerified)
+  me: async () => {
+    const res = await apiRequest("/auth/me", { method: "GET" });
+    return res?.user ?? null;
+  },
 };
 
 
@@ -298,6 +304,30 @@ export const adminAPI = {
       method: "PATCH",
       body: JSON.stringify({ isVerified }),
     });
+  },
+
+  getAllUsers: async (role) => {
+    const url = role ? `/admin/users?role=${encodeURIComponent(role)}` : "/admin/users";
+    const res = await apiRequest(url, { method: "GET" });
+    return res?.data ?? [];
+  },
+
+  getPendingProfileVerification: async () => {
+    const res = await apiRequest("/admin/users/pending-verification", {
+      method: "GET",
+    });
+    return res?.data ?? [];
+  },
+
+  verifyProfile: async (userId, isVerified) => {
+    return apiRequest(`/admin/users/${userId}/verify-profile`, {
+      method: "PATCH",
+      body: JSON.stringify({ isVerified }),
+    });
+  },
+
+  deleteUser: async (userId) => {
+    return apiRequest(`/admin/users/${userId}`, { method: "DELETE" });
   },
 };
 

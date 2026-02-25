@@ -101,6 +101,27 @@ const RenterDashboard = ({ user }) => {
           </div>
         </div>
 
+        {/* Profile verification status */}
+        {user.isProfileVerified ? (
+          <div className="mb-8 flex items-center gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-6 py-4">
+            <FontAwesomeIcon icon={faCheckCircle} className="h-6 w-6 text-emerald-400" />
+            <div>
+              <p className="font-semibold text-emerald-200">Profile verified</p>
+              <p className="text-sm text-emerald-200/80">You can book vehicles and add favorites.</p>
+            </div>
+          </div>
+        ) : (
+          <div className="mb-8 flex items-center gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-6 py-4">
+            <FontAwesomeIcon icon={faClock} className="h-6 w-6 text-amber-400" />
+            <div>
+              <p className="font-semibold text-amber-200">Profile pending verification</p>
+              <p className="text-sm text-amber-200/80">
+                Complete your profile (including license upload) below. After you save, an admin will verify your profile. Once verified, you can book and rent vehicles.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Quick Stats */}
         <div className="mb-8 grid gap-6 md:grid-cols-3">
           <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-6">

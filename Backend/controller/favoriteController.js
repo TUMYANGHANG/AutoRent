@@ -1,3 +1,6 @@
+import { eq } from "drizzle-orm";
+import { db } from "../db/index.js";
+import { users } from "../schema/index.js";
 import {
   addFavorite,
   getFavoriteVehicleIds,
@@ -49,10 +52,12 @@ const getFavoritesController = async (req, res) => {
 
 /**
  * Add vehicle to favorites.
+ * Renters must have profile verified (isProfileVerified) to add favorites or book.
  */
 const addFavoriteController = async (req, res) => {
   try {
     const userId = req.user.userId;
+    const role = req.user.role;
     const { vehicleId } = req.body;
 
     if (!vehicleId) {
@@ -60,6 +65,21 @@ const addFavoriteController = async (req, res) => {
         success: false,
         message: "vehicleId is required",
       });
+    }
+
+    if (role === "renter") {
+      const [user] = await db
+        .select({ isProfileVerified: users.isProfileVerified })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+      if (!user?.isProfileVerified) {
+        return res.status(403).json({
+          success: false,
+          message:
+            "Complete your profile and get it verified by admin before you can add favorites or book vehicles.",
+        });
+      }
     }
 
     const result = await addFavorite(userId, vehicleId);

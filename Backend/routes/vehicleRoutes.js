@@ -24,24 +24,19 @@ const router = express.Router();
 router.get("/vehicles/browse", getPublicVehiclesController);
 router.get("/vehicles/browse/:id", getPublicVehicleByIdController);
 
-// All other vehicle routes require authentication
-router.use(authenticateToken);
+// —— Owner vehicle routes (auth required) ——
+router.post("/vehicles", authenticateToken, validateAddVehicle, addVehicleController);
+router.get("/vehicles", authenticateToken, getMyVehiclesController);
+router.get("/vehicles/:id", authenticateToken, getVehicleByIdController);
+router.patch("/vehicles/:id", authenticateToken, validateUpdateVehicle, updateVehicleController);
+router.delete("/vehicles/:id", authenticateToken, deleteVehicleController);
+router.post("/vehicles/:id/images", authenticateToken, validateAddVehicleImages, addVehicleImagesController);
 
-// —— Owner vehicle routes ——
-router.post("/vehicles", validateAddVehicle, addVehicleController) //new vehcles added by owner
-router.get("/vehicles", getMyVehiclesController); //get all vehicles of the owner
-router.get("/vehicles/:id", getVehicleByIdController); //get a single vehicle by id
-router.patch("/vehicles/:id", validateUpdateVehicle, updateVehicleController); //update vehicle details (owner; isVerified not allowed)
-router.delete("/vehicles/:id", deleteVehicleController);
-router.post("/vehicles/:id/images", validateAddVehicleImages, addVehicleImagesController);
-
-
-
-// —— Admin routes ——
-router.get("/admin/stats", getAdminStatsController);
-router.get("/admin/vehicles", getAllVehiclesController);
-router.get("/admin/vehicles/:id", getVehicleByIdAdminController);
-router.patch("/admin/vehicles/:id/verify", updateVehicleVerifyController);
+// —— Admin routes (auth required) ——
+router.get("/admin/stats", authenticateToken, getAdminStatsController);
+router.get("/admin/vehicles", authenticateToken, getAllVehiclesController);
+router.get("/admin/vehicles/:id", authenticateToken, getVehicleByIdAdminController);
+router.patch("/admin/vehicles/:id/verify", authenticateToken, updateVehicleVerifyController);
 
 
 

@@ -9,7 +9,8 @@
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.0.2",
     "nodemailer": "^7.0.12",
-    "postgres": "^3.4.3"
+    "postgres": "^3.4.3",
+    "socket.io": "^4.8.3"
   },
   "name": "backend",
   "version": "1.0.0",

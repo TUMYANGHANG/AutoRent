@@ -48,6 +48,7 @@ const desktopLinks = [
 const Navbar = ({ isAuthenticated, onOpenLogin, onOpenSignUp, onLogout }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
   const [active, setActive] = useState("Home");
@@ -65,6 +66,21 @@ const Navbar = ({ isAuthenticated, onOpenLogin, onOpenSignUp, onLogout }) => {
       setActive("FAQ");
     } else if (location.pathname === "/contact") {
       setActive("Contact");
+    }
+  }, [location.pathname]);
+
+  // Load cached user (includes profilePicture if renter updated profile)
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("user");
+      if (!stored) {
+        setCurrentUser(null);
+        return;
+      }
+      const parsed = JSON.parse(stored);
+      setCurrentUser(parsed || null);
+    } catch {
+      setCurrentUser(null);
     }
   }, [location.pathname]);
 
@@ -197,13 +213,21 @@ const Navbar = ({ isAuthenticated, onOpenLogin, onOpenSignUp, onLogout }) => {
                   <button
                     type="button"
                     onClick={() => navigate("/dashboard")}
-                    className="relative flex h-12 w-12 cursor-pointer items-center justify-center rounded-full bg-white/5 text-white/80 ring-1 ring-white/10 transition-all duration-300 hover:scale-110 hover:bg-white/10 hover:text-white hover:ring-white/20"
+                    className="relative flex h-12 w-12 cursor-pointer items-center justify-center rounded-full bg-white/5 text-white/80 ring-1 ring-white/10 transition-all duration-300 hover:scale-110 hover:bg-white/10 hover:text-white hover:ring-white/20 overflow-hidden"
                     aria-label="Profile"
                   >
-                    <FontAwesomeIcon
-                      icon={faUserCircle}
-                      className="h-6 w-6 transition-all duration-300 group-hover:scale-125"
-                    />
+                    {currentUser?.profilePicture ? (
+                      <img
+                        src={currentUser.profilePicture}
+                        alt="Profile"
+                        className="h-11 w-11 rounded-full object-cover"
+                      />
+                    ) : (
+                      <FontAwesomeIcon
+                        icon={faUserCircle}
+                        className="h-6 w-6 transition-all duration-300 group-hover:scale-125"
+                      />
+                    )}
                   </button>
 
                   {/* Profile Dropdown */}

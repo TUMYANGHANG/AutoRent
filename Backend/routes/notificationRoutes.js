@@ -9,11 +9,9 @@ import { authenticateToken } from "../middleware/auth.js";
 
 const router = express.Router();
 
-router.use(authenticateToken);
-
-router.get("/notifications", getMyNotificationsController);
-router.get("/notifications/unread-count", getUnreadCountController);
-router.patch("/notifications/:id/read", markAsReadController);
-router.patch("/notifications/read-all", markAllAsReadController);
+router.get("/notifications", authenticateToken, getMyNotificationsController);
+router.get("/notifications/unread-count", authenticateToken, getUnreadCountController);
+router.patch("/notifications/:id/read", authenticateToken, markAsReadController);
+router.patch("/notifications/read-all", authenticateToken, markAllAsReadController);
 
 export default router;

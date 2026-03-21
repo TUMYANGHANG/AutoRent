@@ -17,13 +17,16 @@ import Dashboard from "./pages/Dashboard.jsx";
 import Favorites from "./pages/Favorites.jsx";
 import GaragesMap from "./pages/GaragesMap.jsx";
 import Home from "./pages/Home.jsx";
+import PaymentReturn from "./pages/PaymentReturn.jsx";
 import PrivacyPolicy from "./pages/PrivacyPolicy.jsx";
 import RentVehicle from "./pages/RentVehicle.jsx";
 import Services from "./pages/Services.jsx";
 import TermsOfService from "./pages/TermsOfService.jsx";
 import VehicleBook from "./pages/VehicleBook.jsx";
 import VehicleDetail from "./pages/VehicleDetail.jsx";
+import ChatBot from "./component/ChatBot.jsx";
 import { getAuthToken, removeAuthToken } from "./utils/api.js";
+import { disconnectSocket } from "./utils/socket.js";
 
 const AppContent = () => {
   const location = useLocation();
@@ -57,11 +60,10 @@ const AppContent = () => {
   };
 
   const handleLogout = () => {
-    // Clear token and user data
+    disconnectSocket();
     removeAuthToken();
     localStorage.removeItem("user");
     setIsAuthenticated(false);
-    // Redirect to home
     window.location.href = "/";
   };
 
@@ -104,6 +106,7 @@ const AppContent = () => {
         <Route path="/garages-map" element={<GaragesMap />} />
         <Route path="/vehicles/:id" element={<VehicleDetail />} />
         <Route path="/vehicles/:id/book" element={<VehicleBook />} />
+        <Route path="/payment/return" element={<PaymentReturn />} />
         <Route path="/faq" element={<FAQ />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
@@ -112,6 +115,8 @@ const AppContent = () => {
       </Routes>
 
       {!isDashboard && <Footer />}
+
+      <ChatBot />
     </>
   );
 };

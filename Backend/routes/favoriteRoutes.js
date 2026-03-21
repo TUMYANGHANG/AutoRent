@@ -9,11 +9,9 @@ import { authenticateToken } from "../middleware/auth.js";
 
 const router = express.Router();
 
-router.use(authenticateToken);
-
-router.get("/favorites/ids", getFavoriteIdsController);
-router.get("/favorites", getFavoritesController);
-router.post("/favorites", addFavoriteController);
-router.delete("/favorites/:vehicleId", removeFavoriteController);
+router.get("/favorites/ids", authenticateToken, getFavoriteIdsController);
+router.get("/favorites", authenticateToken, getFavoritesController);
+router.post("/favorites", authenticateToken, addFavoriteController);
+router.delete("/favorites/:vehicleId", authenticateToken, removeFavoriteController);
 
 export default router;

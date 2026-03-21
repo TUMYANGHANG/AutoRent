@@ -1,6 +1,7 @@
-import { and, eq, inArray, count } from "drizzle-orm";
+import { and, eq, inArray, count, isNotNull, or } from "drizzle-orm";
 import { db } from "../db/index.js";
-import { users, vehicleImages, vehicles } from "../schema/index.js";
+import { bookings, userDetails, users, vehicleImages, vehicles } from "../schema/index.js";
+import { getRatingStats, getRatingStatsForVehicles } from "./vehicleReviewService.js";
 
 /**
  * Create a vehicle with images and documents (owner only). Document images are mandatory.
@@ -35,6 +36,9 @@ const createVehicle = async (ownerId, vehicleData, imageUrls = [], documentUrls 
       lateFeePerHour: vehicleData.lateFeePerHour != null ? String(vehicleData.lateFeePerHour) : null,
       status: vehicleData.status ?? "available",
       description: vehicleData.description ?? null,
+      pickupLatitude: vehicleData.pickupLatitude != null ? String(vehicleData.pickupLatitude) : null,
+      pickupLongitude: vehicleData.pickupLongitude != null ? String(vehicleData.pickupLongitude) : null,
+      pickupAddress: vehicleData.pickupAddress != null ? String(vehicleData.pickupAddress).trim().slice(0, 500) : null,
       updatedAt: new Date(),
     })
     .returning();
@@ -172,11 +176,39 @@ const vehicleBelongsToOwner = async (vehicleId, ownerId) => {
   return !!row;
 };
 
+/** Haversine distance in km between two points */
+const haversineKm = (lat1, lon1, lat2, lon2) => {
+  const R = 6371;
+  const toRad = (x) => (x * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
 /**
- * Get vehicles available for rent (public): verified and status = available.
- * Returns vehicles with images only (no documents, no owner private info).
+ * Get vehicles for rent (public): verified, status = available or rented.
+ * Returns vehicles with images; rented vehicles shown with status for visibility.
+ * @param {Object} [opts] - Optional: { lat, lng, radiusKm, nearby }. If nearby and lat/lng set, only vehicles with pickup location are returned, sorted by distance, with distanceKm on each.
  */
-const getPublicVehicles = async () => {
+const getPublicVehicles = async (opts = {}) => {
+  const { lat, lng, radiusKm, nearby } = opts;
+  const useNearby = !!nearby && lat != null && lng != null && !Number.isNaN(Number(lat)) && !Number.isNaN(Number(lng));
+  const userLat = useNearby ? Number(lat) : null;
+  const userLng = useNearby ? Number(lng) : null;
+  const maxRadius = radiusKm != null && !Number.isNaN(Number(radiusKm)) ? Number(radiusKm) : null;
+
+  const baseWhere = and(
+    eq(vehicles.isVerified, true),
+    or(eq(vehicles.status, "available"), eq(vehicles.status, "rented"))
+  );
+  const whereClause = useNearby
+    ? and(baseWhere, isNotNull(vehicles.pickupLatitude), isNotNull(vehicles.pickupLongitude))
+    : baseWhere;
+
   const list = await db
     .select({
       id: vehicles.id,
@@ -195,9 +227,12 @@ const getPublicVehicles = async () => {
       status: vehicles.status,
       description: vehicles.description,
       createdAt: vehicles.createdAt,
+      pickupLatitude: vehicles.pickupLatitude,
+      pickupLongitude: vehicles.pickupLongitude,
+      pickupAddress: vehicles.pickupAddress,
     })
     .from(vehicles)
-    .where(and(eq(vehicles.isVerified, true), eq(vehicles.status, "available")))
+    .where(whereClause)
     .orderBy(vehicles.createdAt);
 
   if (list.length === 0) return [];
@@ -217,14 +252,38 @@ const getPublicVehicles = async () => {
     }
   }
 
-  return list.map((v) => ({
+  let ratingStats = {};
+  try {
+    ratingStats = await getRatingStatsForVehicles(vehicleIds);
+  } catch (err) {
+    console.warn("Vehicle review stats unavailable:", err?.message);
+  }
+  let result = list.map((v) => ({
     ...v,
     images: imagesByVehicle[v.id] ?? [],
+    averageRating: ratingStats[v.id]?.averageRating ?? null,
+    reviewCount: ratingStats[v.id]?.reviewCount ?? 0,
   }));
+
+  if (useNearby && userLat != null && userLng != null) {
+    result = result
+      .map((v) => {
+        const vLat = Number(v.pickupLatitude);
+        const vLng = Number(v.pickupLongitude);
+        if (Number.isNaN(vLat) || Number.isNaN(vLng)) return null;
+        const distanceKm = haversineKm(userLat, userLng, vLat, vLng);
+        if (maxRadius != null && distanceKm > maxRadius) return null;
+        return { ...v, distanceKm: Math.round(distanceKm * 10) / 10 };
+      })
+      .filter(Boolean)
+      .sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));
+  }
+
+  return result;
 };
 
 /**
- * Get a single vehicle by ID for public browse (verified + available only).
+ * Get a single vehicle by ID for public browse (verified; available or rented).
  */
 const getPublicVehicleById = async (vehicleId) => {
   const [vehicle] = await db
@@ -245,15 +304,12 @@ const getPublicVehicleById = async (vehicleId) => {
       status: vehicles.status,
       description: vehicles.description,
       createdAt: vehicles.createdAt,
+      pickupLatitude: vehicles.pickupLatitude,
+      pickupLongitude: vehicles.pickupLongitude,
+      pickupAddress: vehicles.pickupAddress,
     })
     .from(vehicles)
-    .where(
-      and(
-        eq(vehicles.id, vehicleId),
-        eq(vehicles.isVerified, true),
-        eq(vehicles.status, "available")
-      )
-    )
+    .where(and(eq(vehicles.id, vehicleId), eq(vehicles.isVerified, true)))
     .limit(1);
 
   if (!vehicle) return null;
@@ -265,7 +321,18 @@ const getPublicVehicleById = async (vehicleId) => {
     .orderBy(vehicleImages.createdAt);
 
   const images = rows.filter((r) => r.imageUrl != null).map((r) => r.imageUrl);
-  return { ...vehicle, images };
+  let stats = { averageRating: null, reviewCount: 0 };
+  try {
+    stats = await getRatingStats(vehicleId);
+  } catch (err) {
+    console.warn("Vehicle review stats unavailable:", err?.message);
+  }
+  return {
+    ...vehicle,
+    images,
+    averageRating: stats.averageRating,
+    reviewCount: stats.reviewCount,
+  };
 };
 
 /**
@@ -372,6 +439,9 @@ const updateVehicle = async (vehicleId, ownerId, data) => {
   if (data.lateFeePerHour !== undefined) allowed.lateFeePerHour = data.lateFeePerHour === null || data.lateFeePerHour === "" ? null : String(data.lateFeePerHour);
   if (data.description !== undefined) allowed.description = data.description === null || data.description === "" ? null : String(data.description).trim();
   if (data.status !== undefined) allowed.status = data.status;
+  if (data.pickupLatitude !== undefined) allowed.pickupLatitude = data.pickupLatitude === null || data.pickupLatitude === "" ? null : String(data.pickupLatitude);
+  if (data.pickupLongitude !== undefined) allowed.pickupLongitude = data.pickupLongitude === null || data.pickupLongitude === "" ? null : String(data.pickupLongitude);
+  if (data.pickupAddress !== undefined) allowed.pickupAddress = data.pickupAddress === null || data.pickupAddress === "" ? null : String(data.pickupAddress).trim().slice(0, 500);
 
   if (Object.keys(allowed).length === 0) {
     return getVehicleById(vehicleId);
@@ -407,12 +477,46 @@ const deleteVehicle = async (vehicleId, ownerId) => {
 };
 
 /**
- * Get admin dashboard stats (e.g. total vehicles count).
+ * Get admin dashboard stats (total vehicles, total users, active rentals, pending actions).
  */
 const getAdminStats = async () => {
-  const [row] = await db.select({ totalVehicles: count() }).from(vehicles);
+  const [vehiclesRow] = await db.select({ totalVehicles: count() }).from(vehicles);
+
+  const [usersRow] = await db.select({ totalUsers: count() }).from(users);
+
+  const [activeRow] = await db
+    .select({ count: count() })
+    .from(bookings)
+    .where(inArray(bookings.status, ["confirmed", "in_progress"]));
+
+  // Pending profile verifications: renters with userDetails + licenseImage, not yet verified
+  const [pendingProfileRow] = await db
+    .select({ count: count() })
+    .from(users)
+    .innerJoin(userDetails, eq(users.id, userDetails.userId))
+    .where(
+      and(
+        eq(users.role, "renter"),
+        eq(users.isProfileVerified, false),
+        isNotNull(userDetails.licenseImage)
+      )
+    );
+  const pendingProfileCount = Number(pendingProfileRow?.count ?? 0);
+
+  // Unverified vehicles
+  const [unverifiedVehiclesRow] = await db
+    .select({ count: count() })
+    .from(vehicles)
+    .where(eq(vehicles.isVerified, false));
+
+  const pendingActions =
+    pendingProfileCount + Number(unverifiedVehiclesRow?.count ?? 0);
+
   return {
-    totalVehicles: row?.totalVehicles ?? 0,
+    totalVehicles: Number(vehiclesRow?.totalVehicles ?? 0),
+    totalUsers: Number(usersRow?.totalUsers ?? 0),
+    activeRentals: Number(activeRow?.count ?? 0),
+    pendingActions,
   };
 };
 

@@ -20,11 +20,18 @@ import {
 } from "../services/vehicleService.js";
 
 /**
- * Get vehicles available for rent (public, no auth)
+ * Get vehicles available for rent (public, no auth).
+ * Query: lat, lng, radiusKm, nearby — for "find nearby" (sort by distance, optional radius filter).
  */
 const getPublicVehiclesController = async (req, res) => {
   try {
-    const vehicles = await getPublicVehicles();
+    const { lat, lng, radiusKm, nearby } = req.query;
+    const opts = {};
+    if (lat != null) opts.lat = lat;
+    if (lng != null) opts.lng = lng;
+    if (radiusKm != null) opts.radiusKm = radiusKm;
+    if (nearby === "true" || nearby === true) opts.nearby = true;
+    const vehicles = await getPublicVehicles(opts);
     res.status(200).json({
       success: true,
       data: vehicles,
@@ -97,6 +104,9 @@ const addVehicleController = async (req, res) => {
         lateFeePerHour: req.body.lateFeePerHour,
         status: req.body.status,
         description: req.body.description,
+        pickupLatitude: req.body.pickupLatitude,
+        pickupLongitude: req.body.pickupLongitude,
+        pickupAddress: req.body.pickupAddress,
       },
       req.body.imageUrls ?? [],
       req.body.documentUrls ?? []

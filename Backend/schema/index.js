@@ -6,4 +6,9 @@ export { vehicleStatusEnum, vehicles } from "./vehicle.js";
 export { vehicleImages } from "./vehicleImage.js";
 export { notifications } from "./notifications.js";
 export { garages } from "./garage.js";
+export { bookings, bookingStatusEnum } from "./booking.js";
+export { bookingRequests, bookingRequestStatusEnum } from "./bookingRequest.js";
+export { payments, paymentMethodEnum, paymentStatusEnum } from "./payment.js";
+export { chatConversations, chatMessages } from "./chat.js";
+export { vehicleReviews } from "./vehicleReview.js";
 

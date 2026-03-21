@@ -1,18 +1,28 @@
 import {
   faArrowLeft,
+  faCalendarCheck,
   faCar,
+  faExclamationTriangle,
   faGasPump,
   faGears,
   faHeart,
   faPeopleGroup,
   faShieldHalved,
-  faCalendarCheck,
-  faExclamationTriangle,
+  faStar,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { authAPI, renterAPI, favoritesAPI, getAuthToken } from "../utils/api.js";
+import {
+  authAPI,
+  favoritesAPI,
+  getAuthToken,
+  renterAPI,
+  reviewsAPI,
+} from "../utils/api.js";
+import BookingModal from "../component/BookingModal.jsx";
+import ReviewFormModal from "../component/ReviewFormModal.jsx";
+import StarRating from "../component/StarRating.jsx";
 
 const formatPrice = (value) => {
   if (value == null || value === "") return "—";
@@ -29,6 +39,11 @@ const VehicleDetail = () => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [bookingModalOpen, setBookingModalOpen] = useState(false);
+  const [reviewsData, setReviewsData] = useState({ reviews: [], averageRating: null, reviewCount: 0 });
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [myReviewEligibility, setMyReviewEligibility] = useState(null);
   const isAuthenticated = !!getAuthToken();
   const isRenterUnverified =
     isAuthenticated &&
@@ -63,12 +78,17 @@ const VehicleDetail = () => {
   useEffect(() => {
     if (!isAuthenticated) return;
     let cancelled = false;
-    authAPI.me().then((u) => {
-      if (!cancelled) setCurrentUser(u ?? null);
-    }).catch(() => {
-      if (!cancelled) setCurrentUser(null);
-    });
-    return () => { cancelled = true; };
+    authAPI
+      .me()
+      .then((u) => {
+        if (!cancelled) setCurrentUser(u ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setCurrentUser(null);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [isAuthenticated]);
 
   useEffect(() => {
@@ -77,12 +97,48 @@ const VehicleDetail = () => {
     const fetchFavoriteIds = async () => {
       try {
         const ids = await favoritesAPI.getIds();
-        if (!cancelled && Array.isArray(ids)) setIsFavorite(ids.includes(Number(id)));
+        if (!cancelled && Array.isArray(ids))
+          setIsFavorite(ids.includes(Number(id)));
       } catch {
         if (!cancelled) setIsFavorite(false);
       }
     };
     fetchFavoriteIds();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, id]);
+
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    const fetchReviews = async () => {
+      setReviewsLoading(true);
+      try {
+        const data = await reviewsAPI.getForVehicle(id);
+        if (!cancelled) {
+          setReviewsData({
+            reviews: data.reviews ?? [],
+            averageRating: data.averageRating ?? null,
+            reviewCount: data.reviewCount ?? 0,
+          });
+        }
+      } catch {
+        if (!cancelled) setReviewsData({ reviews: [], averageRating: null, reviewCount: 0 });
+      } finally {
+        if (!cancelled) setReviewsLoading(false);
+      }
+    };
+    fetchReviews();
+    return () => { cancelled = true; };
+  }, [id]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !id) return;
+    let cancelled = false;
+    reviewsAPI.getMyReview(id).then((data) => {
+      if (!cancelled) setMyReviewEligibility(data);
+    }).catch(() => { if (!cancelled) setMyReviewEligibility(null); });
     return () => { cancelled = true; };
   }, [isAuthenticated, id]);
 
@@ -127,14 +183,18 @@ const VehicleDetail = () => {
             Back to vehicles
           </Link>
           <div className="mt-8 rounded-2xl border border-red-500/20 bg-red-500/10 px-6 py-8 text-center">
-            <p className="text-red-400">{error ?? "Vehicle not found or not available for rent."}</p>
+            <p className="text-red-400">
+              {error ?? "Vehicle not found or not available for rent."}
+            </p>
           </div>
         </div>
       </main>
     );
   }
 
-  const images = Array.isArray(vehicle.images) ? vehicle.images.filter((url) => url != null) : [];
+  const images = Array.isArray(vehicle.images)
+    ? vehicle.images.filter((url) => url != null)
+    : [];
   const imageUrl = images[selectedImageIndex] ?? images[0] ?? null;
   const brand = vehicle.brand ?? "";
   const model = vehicle.model ?? "";
@@ -174,7 +234,10 @@ const VehicleDetail = () => {
                 />
               ) : (
                 <div className="flex aspect-video w-full items-center justify-center bg-zinc-800/80">
-                  <FontAwesomeIcon icon={faCar} className="h-24 w-24 text-white/20" />
+                  <FontAwesomeIcon
+                    icon={faCar}
+                    className="h-24 w-24 text-white/20"
+                  />
                 </div>
               )}
             </div>
@@ -191,7 +254,11 @@ const VehicleDetail = () => {
                         : "border-white/20 hover:border-white/40"
                     }`}
                   >
-                    <img src={url} alt="" className="h-full w-full object-cover" />
+                    <img
+                      src={url}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
                   </button>
                 ))}
               </div>
@@ -202,33 +269,58 @@ const VehicleDetail = () => {
             <h1 className="text-3xl font-extrabold tracking-tight text-white md:text-4xl">
               {brand} {model}
             </h1>
-            {vehicle.manufactureYear && (
-              <p className="mt-1 text-white/60">{vehicle.manufactureYear}</p>
-            )}
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              {vehicle.manufactureYear && (
+                <p className="text-white/60">{vehicle.manufactureYear}</p>
+              )}
+              {(reviewsData.averageRating != null || vehicle.averageRating != null) && (
+                <div className="flex items-center gap-2">
+                  <StarRating
+                    rating={reviewsData.averageRating ?? vehicle.averageRating}
+                    size="md"
+                  />
+                  <span className="text-sm text-white/70">
+                    {reviewsData.reviewCount || vehicle.reviewCount || 0} review
+                    {(reviewsData.reviewCount || vehicle.reviewCount || 0) !== 1 ? "s" : ""}
+                  </span>
+                </div>
+              )}
+            </div>
 
             <div className="mt-6 flex flex-wrap gap-3 text-sm text-white/80">
               {vehicle.seatingCapacity != null && (
                 <span className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
-                  <FontAwesomeIcon icon={faPeopleGroup} className="h-4 w-4 text-orange-400" />
+                  <FontAwesomeIcon
+                    icon={faPeopleGroup}
+                    className="h-4 w-4 text-orange-400"
+                  />
                   {vehicle.seatingCapacity} seats
                 </span>
               )}
               {vehicle.transmission && (
                 <span className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
-                  <FontAwesomeIcon icon={faGears} className="h-4 w-4 text-orange-400" />
+                  <FontAwesomeIcon
+                    icon={faGears}
+                    className="h-4 w-4 text-orange-400"
+                  />
                   {vehicle.transmission}
                 </span>
               )}
               {vehicle.fuelType && (
                 <span className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
-                  <FontAwesomeIcon icon={faGasPump} className="h-4 w-4 text-orange-400" />
+                  <FontAwesomeIcon
+                    icon={faGasPump}
+                    className="h-4 w-4 text-orange-400"
+                  />
                   {vehicle.fuelType}
                 </span>
               )}
             </div>
 
             {vehicle.description && (
-              <p className="mt-6 text-white/80 leading-relaxed">{vehicle.description}</p>
+              <p className="mt-6 text-white/80 leading-relaxed">
+                {vehicle.description}
+              </p>
             )}
 
             <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -251,44 +343,121 @@ const VehicleDetail = () => {
                   {pricePerDay}
                 </span>
               </div>
-              {vehicle.securityDeposit != null && vehicle.securityDeposit !== "" && (
-                <div className="flex items-center justify-between border-t border-white/10 pt-3">
-                  <span className="text-white/70">Security deposit</span>
-                  <span className="font-medium text-white">{securityDeposit}</span>
-                </div>
-              )}
-              {vehicle.lateFeePerHour != null && vehicle.lateFeePerHour !== "" && (
-                <div className="flex items-center justify-between border-t border-white/10 pt-3">
-                  <span className="text-white/70">Late fee (per hour)</span>
-                  <span className="font-medium text-white">{lateFeePerHour}</span>
-                </div>
-              )}
+              {vehicle.securityDeposit != null &&
+                vehicle.securityDeposit !== "" && (
+                  <div className="flex items-center justify-between border-t border-white/10 pt-3">
+                    <span className="text-white/70">Security deposit</span>
+                    <span className="font-medium text-white">
+                      {securityDeposit}
+                    </span>
+                  </div>
+                )}
+              {vehicle.lateFeePerHour != null &&
+                vehicle.lateFeePerHour !== "" && (
+                  <div className="flex items-center justify-between border-t border-white/10 pt-3">
+                    <span className="text-white/70">Late fee (per hour)</span>
+                    <span className="font-medium text-white">
+                      {lateFeePerHour}
+                    </span>
+                  </div>
+                )}
             </div>
 
-            {isRenterUnverified && (
-              <div className="mb-6 flex items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-200">
-                <FontAwesomeIcon icon={faExclamationTriangle} className="h-5 w-5 shrink-0" />
-                <p className="text-sm">
-                  Complete your profile and get it verified by admin to book this vehicle or add to favorites. Go to your{" "}
-                  <Link to="/dashboard" className="font-semibold underline hover:text-amber-100">dashboard</Link> to complete and submit your profile.
+            {vehicle.status === "rented" && (
+              <div className="mb-6 flex items-center gap-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-red-200">
+                <FontAwesomeIcon
+                  icon={faExclamationTriangle}
+                  className="h-5 w-5 shrink-0"
+                />
+                <p className="text-sm font-semibold">
+                  This vehicle is currently rented. It will be available again
+                  after the current rental period ends.
                 </p>
               </div>
             )}
 
+            {isRenterUnverified && (
+              <div className="mb-6 flex items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-200">
+                <FontAwesomeIcon
+                  icon={faExclamationTriangle}
+                  className="h-5 w-5 shrink-0"
+                />
+                <p className="text-sm">
+                  Complete your profile and get it verified by admin to book
+                  this vehicle or add to favorites. Go to your{" "}
+                  <Link
+                    to="/dashboard"
+                    className="font-semibold underline hover:text-amber-100"
+                  >
+                    dashboard
+                  </Link>{" "}
+                  to complete and submit your profile.
+                </p>
+              </div>
+            )}
+
+            {/* Reviews section */}
+            <div className="mt-8 rounded-2xl border border-white/10 bg-black/30 p-6">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <h3 className="text-lg font-bold text-white">Reviews</h3>
+                {myReviewEligibility?.canReview && (
+                  <button
+                    type="button"
+                    onClick={() => setReviewModalOpen(true)}
+                    className="inline-flex items-center gap-2 rounded-xl border border-orange-500/50 bg-orange-500/20 px-4 py-2 text-sm font-semibold text-orange-400 transition hover:bg-orange-500/30"
+                  >
+                    <FontAwesomeIcon icon={faStar} className="h-4 w-4" />
+                    {myReviewEligibility.review ? "Update your review" : "Write a review"}
+                  </button>
+                )}
+              </div>
+              {!myReviewEligibility?.canReview && myReviewEligibility?.reason && (
+                <p className="mt-2 text-sm text-white/50">{myReviewEligibility.reason}</p>
+              )}
+              {reviewsLoading ? (
+                <p className="mt-4 text-white/50">Loading reviews…</p>
+              ) : reviewsData.reviews.length === 0 ? (
+                <p className="mt-4 text-white/50">No reviews yet. Be the first to review!</p>
+              ) : (
+                <ul className="mt-4 space-y-4">
+                  {reviewsData.reviews.map((r) => (
+                    <li key={r.id} className="border-t border-white/10 pt-4 first:border-t-0 first:pt-0">
+                      <div className="flex items-center gap-2">
+                        <StarRating rating={r.rating} size="sm" />
+                        <span className="text-sm font-medium text-white/80">{r.userName}</span>
+                        <span className="text-xs text-white/50">
+                          {r.createdAt ? new Date(r.createdAt).toLocaleDateString() : ""}
+                        </span>
+                      </div>
+                      {r.comment && (
+                        <p className="mt-2 text-sm text-white/70">{r.comment}</p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
             <div className="mt-8 flex flex-wrap items-center gap-3">
-              {isRenterUnverified ? (
+              {vehicle.status === "rented" ? (
+                <span className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-8 py-4 text-lg font-semibold text-white/50">
+                  <FontAwesomeIcon icon={faCalendarCheck} className="h-5 w-5" />
+                  Currently rented – check back later
+                </span>
+              ) : isRenterUnverified ? (
                 <span className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-8 py-4 text-lg font-semibold text-white/50">
                   <FontAwesomeIcon icon={faCalendarCheck} className="h-5 w-5" />
                   Book this vehicle (verify profile first)
                 </span>
               ) : (
-                <Link
-                  to={`/vehicles/${id}/book`}
+                <button
+                  type="button"
+                  onClick={() => setBookingModalOpen(true)}
                   className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-8 py-4 text-lg font-bold text-black shadow-[0_18px_45px_rgba(249,115,22,0.35)] transition-all hover:bg-orange-400 hover:shadow-[0_18px_45px_rgba(249,115,22,0.5)] focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                 >
                   <FontAwesomeIcon icon={faCalendarCheck} className="h-5 w-5" />
                   Book this vehicle
-                </Link>
+                </button>
               )}
               {isAuthenticated ? (
                 <button
@@ -301,8 +470,17 @@ const VehicleDetail = () => {
                       : "border-white/20 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white"
                   }`}
                 >
-                  <FontAwesomeIcon icon={faHeart} className={isFavorite ? "h-5 w-5" : "h-5 w-5 opacity-80"} />
-                  {favoriteLoading ? (isFavorite ? "Removing…" : "Adding…") : isFavorite ? "Remove from favorites" : "Add to favorites"}
+                  <FontAwesomeIcon
+                    icon={faHeart}
+                    className={isFavorite ? "h-5 w-5" : "h-5 w-5 opacity-80"}
+                  />
+                  {favoriteLoading
+                    ? isFavorite
+                      ? "Removing…"
+                      : "Adding…"
+                    : isFavorite
+                      ? "Remove from favorites"
+                      : "Add to favorites"}
                 </button>
               ) : (
                 <Link
@@ -310,7 +488,10 @@ const VehicleDetail = () => {
                   state={{ openLogin: true }}
                   className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/5 px-6 py-4 text-lg font-semibold text-white/80 transition hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                 >
-                  <FontAwesomeIcon icon={faHeart} className="h-5 w-5 opacity-80" />
+                  <FontAwesomeIcon
+                    icon={faHeart}
+                    className="h-5 w-5 opacity-80"
+                  />
                   Sign in to add to favorites
                 </Link>
               )}
@@ -318,6 +499,32 @@ const VehicleDetail = () => {
           </div>
         </div>
       </div>
+
+      <BookingModal
+        vehicle={vehicle}
+        isOpen={bookingModalOpen}
+        onClose={() => setBookingModalOpen(false)}
+      />
+
+      <ReviewFormModal
+        isOpen={reviewModalOpen}
+        onClose={() => setReviewModalOpen(false)}
+        onSubmit={async (rating, comment) => {
+          const created = await reviewsAPI.create(id, { rating, comment });
+          if (created) {
+            const data = await reviewsAPI.getForVehicle(id);
+            setReviewsData({
+              reviews: data.reviews ?? [],
+              averageRating: data.averageRating ?? null,
+              reviewCount: data.reviewCount ?? 0,
+            });
+            const eligibility = await reviewsAPI.getMyReview(id);
+            setMyReviewEligibility(eligibility);
+          }
+        }}
+        existingReview={myReviewEligibility?.review ? { rating: myReviewEligibility.review.rating, comment: myReviewEligibility.review.comment } : null}
+        vehicleName={`${brand} ${model}`}
+      />
     </main>
   );
 };

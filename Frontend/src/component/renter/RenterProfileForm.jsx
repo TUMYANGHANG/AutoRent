@@ -157,6 +157,20 @@ const RenterProfileForm = ({ user, userDetails, onSuccess, onCancel }) => {
         await userDetailsAPI.createUserDetails(user.id, detailsData);
       }
 
+      // Also update cached user in localStorage so navbar/profile icon can use the latest picture
+      try {
+        const stored = localStorage.getItem("user");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed && parsed.id === user.id) {
+            parsed.profilePicture = profilePictureUrl;
+            localStorage.setItem("user", JSON.stringify(parsed));
+          }
+        }
+      } catch {
+        // ignore JSON / storage errors – non-critical
+      }
+
       setSuccess(true);
       setTimeout(() => {
         if (onSuccess) onSuccess();

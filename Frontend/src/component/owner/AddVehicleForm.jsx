@@ -1,7 +1,8 @@
-import { faFileAlt, faImage, faPlus, faTrash } from "@fortawesome/free-solid-svg-icons";
+import { faFileAlt, faImage, faLocationDot, faPlus, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useState } from "react";
 import { vehicleAPI } from "../../utils/api.js";
+import PickupLocationMap from "./PickupLocationMap.jsx";
 
 const INITIAL_FORM = {
   brand: "",
@@ -17,6 +18,9 @@ const INITIAL_FORM = {
   securityDeposit: "",
   lateFeePerHour: "",
   description: "",
+  pickupAddress: "",
+  pickupLatitude: "",
+  pickupLongitude: "",
 };
 
 const ACCEPTED_IMAGE_TYPES = "image/jpeg,image/png,image/webp,image/gif";
@@ -125,6 +129,9 @@ const AddVehicleForm = ({ onSuccess, onCancel }) => {
         securityDeposit: securityDeposit ?? undefined,
         lateFeePerHour: lateFeePerHour ?? undefined,
         description: form.description?.trim() || undefined,
+        pickupAddress: form.pickupAddress?.trim() || undefined,
+        pickupLatitude: form.pickupLatitude?.trim() || undefined,
+        pickupLongitude: form.pickupLongitude?.trim() || undefined,
         imageUrls,
         documentUrls,
       };
@@ -174,7 +181,7 @@ const AddVehicleForm = ({ onSuccess, onCancel }) => {
   }
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+    <div className="rounded-2xl border border-[#E2D4C4] bg-[#FFF7E6] p-8 shadow-sm">
       <h2 className="mb-6 text-2xl font-bold text-slate-900">Add New Vehicle</h2>
       <form onSubmit={handleSubmit} className="space-y-6">
         {error && (
@@ -403,6 +410,97 @@ const AddVehicleForm = ({ onSuccess, onCancel }) => {
             rows={3}
             className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-900 placeholder-slate-400 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
           />
+        </div>
+
+        <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <p className="text-sm font-medium text-slate-700">
+              <FontAwesomeIcon
+                icon={faLocationDot}
+                className="mr-2 h-4 w-4 text-orange-500"
+              />
+              Pickup location (optional – helps renters find nearby vehicles)
+            </p>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+            <PickupLocationMap
+              value={
+                form.pickupLatitude && form.pickupLongitude
+                  ? {
+                      latitude: Number(form.pickupLatitude),
+                      longitude: Number(form.pickupLongitude),
+                    }
+                  : null
+              }
+              onChange={({ latitude, longitude }) => {
+                setForm((prev) => ({
+                  ...prev,
+                  pickupLatitude: String(latitude),
+                  pickupLongitude: String(longitude),
+                }));
+              }}
+            />
+            <div className="space-y-3">
+              <div>
+                <label
+                  htmlFor="pickupAddress"
+                  className="mb-1 block text-xs font-medium text-slate-600"
+                >
+                  Address or place name
+                </label>
+                <input
+                  id="pickupAddress"
+                  name="pickupAddress"
+                  type="text"
+                  value={form.pickupAddress}
+                  onChange={handleChange}
+                  placeholder="e.g. Thamel, Kathmandu"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+                  maxLength={500}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label
+                    htmlFor="pickupLatitude"
+                    className="mb-1 block text-xs font-medium text-slate-600"
+                  >
+                    Latitude
+                  </label>
+                  <input
+                    id="pickupLatitude"
+                    name="pickupLatitude"
+                    type="text"
+                    value={form.pickupLatitude}
+                    onChange={handleChange}
+                    placeholder="Click map"
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="pickupLongitude"
+                    className="mb-1 block text-xs font-medium text-slate-600"
+                  >
+                    Longitude
+                  </label>
+                  <input
+                    id="pickupLongitude"
+                    name="pickupLongitude"
+                    type="text"
+                    value={form.pickupLongitude}
+                    onChange={handleChange}
+                    placeholder="Click map"
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+                  />
+                </div>
+              </div>
+              <p className="text-[11px] text-slate-500">
+                These coordinates are used to show your vehicle on the map and
+                to help renters find nearby vehicles.
+              </p>
+            </div>
+          </div>
         </div>
 
         <div>

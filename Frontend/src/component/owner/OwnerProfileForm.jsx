@@ -171,19 +171,19 @@ const OwnerProfileForm = ({ user, userDetails, onSuccess, onCancel }) => {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
-        <div className="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-red-700">
+        <div className="rounded-xl border border-[#FF4D4D] bg-[#FF4D4D]/10 px-4 py-3 text-[#FF4D4D]">
           {error}
         </div>
       )}
       {success && (
-        <div className="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-emerald-700">
+        <div className="rounded-xl border border-[#4DFFBC] bg-[#4DFFBC]/10 px-4 py-3 text-[#555555]">
           Profile saved successfully!
         </div>
       )}
 
       {/* Profile Picture */}
       <div>
-        <label className="mb-2 block text-sm font-medium text-slate-700">
+        <label className="mb-2 block text-sm font-medium text-[#333333]">
           Profile Picture
         </label>
         <div className="flex items-center gap-4">
@@ -191,10 +191,10 @@ const OwnerProfileForm = ({ user, userDetails, onSuccess, onCancel }) => {
             <img
               src={profilePicturePreview}
               alt="Profile"
-              className="h-20 w-20 rounded-full object-cover border-2 border-slate-300"
+              className="h-20 w-20 rounded-full object-cover border-2 border-[#898989]"
             />
           )}
-          <label className="cursor-pointer rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
+          <label className="cursor-pointer rounded-lg border border-[#898989] bg-[#D9D9D9] px-4 py-2 text-sm font-medium text-[#555555] transition hover:bg-[#898989] hover:text-white">
             <FontAwesomeIcon icon={faCamera} className="mr-2" />
             {profilePicturePreview ? "Change" : "Upload"}
             <input
@@ -209,8 +209,8 @@ const OwnerProfileForm = ({ user, userDetails, onSuccess, onCancel }) => {
 
       {/* Phone Number */}
       <div>
-        <label htmlFor="phoneNumber" className="mb-2 block text-sm font-medium text-slate-700">
-          <FontAwesomeIcon icon={faPhone} className="mr-2 text-orange-600" />
+        <label htmlFor="phoneNumber" className="mb-2 block text-sm font-medium text-[#333333]">
+          <FontAwesomeIcon icon={faPhone} className="mr-2 text-[#FF4D4D]" />
           Phone Number
         </label>
         <input
@@ -220,14 +220,14 @@ const OwnerProfileForm = ({ user, userDetails, onSuccess, onCancel }) => {
           value={form.phoneNumber}
           onChange={handleChange}
           placeholder="+1234567890"
-          className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-slate-900 placeholder:text-slate-400 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50"
+          className="w-full rounded-lg border border-[#898989] bg-white px-4 py-2.5 text-slate-900 placeholder:text-slate-400 focus:border-[#FF4D4D] focus:outline-none focus:ring-2 focus:ring-[#FF4D4D]/50"
         />
       </div>
 
       {/* Date of Birth */}
       <div>
-        <label htmlFor="dateOfBirth" className="mb-2 block text-sm font-medium text-slate-700">
-          <FontAwesomeIcon icon={faCalendar} className="mr-2 text-orange-600" />
+        <label htmlFor="dateOfBirth" className="mb-2 block text-sm font-medium text-[#333333]">
+          <FontAwesomeIcon icon={faCalendar} className="mr-2 text-[#FF4D4D]" />
           Date of Birth
         </label>
         <input
@@ -237,14 +237,14 @@ const OwnerProfileForm = ({ user, userDetails, onSuccess, onCancel }) => {
           value={form.dateOfBirth}
           onChange={handleChange}
           max={new Date().toISOString().split("T")[0]}
-          className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50"
+          className="w-full rounded-lg border border-[#898989] bg-white px-4 py-2.5 text-slate-900 focus:border-[#FF4D4D] focus:outline-none focus:ring-2 focus:ring-[#FF4D4D]/50"
         />
       </div>
 
       {/* Address */}
       <div>
-        <label htmlFor="address" className="mb-2 block text-sm font-medium text-slate-700">
-          <FontAwesomeIcon icon={faMapMarkerAlt} className="mr-2 text-orange-600" />
+        <label htmlFor="address" className="mb-2 block text-sm font-medium text-[#333333]">
+          <FontAwesomeIcon icon={faMapMarkerAlt} className="mr-2 text-[#FF4D4D]" />
           Address
         </label>
         <input
@@ -254,14 +254,14 @@ const OwnerProfileForm = ({ user, userDetails, onSuccess, onCancel }) => {
           value={form.address}
           onChange={handleChange}
           placeholder="Street address"
-          className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-slate-900 placeholder:text-slate-400 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50"
+          className="w-full rounded-lg border border-[#898989] bg-white px-4 py-2.5 text-slate-900 placeholder:text-slate-400 focus:border-[#FF4D4D] focus:outline-none focus:ring-2 focus:ring-[#FF4D4D]/50"
         />
       </div>
 
       {/* City */}
       <div>
-        <label htmlFor="city" className="mb-2 block text-sm font-medium text-slate-700">
-          <FontAwesomeIcon icon={faMapMarkerAlt} className="mr-2 text-orange-600" />
+        <label htmlFor="city" className="mb-2 block text-sm font-medium text-[#333333]">
+          <FontAwesomeIcon icon={faMapMarkerAlt} className="mr-2 text-[#FF4D4D]" />
           City
         </label>
         <input
@@ -271,14 +271,14 @@ const OwnerProfileForm = ({ user, userDetails, onSuccess, onCancel }) => {
           value={form.city}
           onChange={handleChange}
           placeholder="City name"
-          className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-slate-900 placeholder:text-slate-400 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50"
+          className="w-full rounded-lg border border-[#898989] bg-white px-4 py-2.5 text-slate-900 placeholder:text-slate-400 focus:border-[#FF4D4D] focus:outline-none focus:ring-2 focus:ring-[#FF4D4D]/50"
         />
       </div>
 
       {/* License Number */}
       <div>
-        <label htmlFor="licenseNumber" className="mb-2 block text-sm font-medium text-slate-700">
-          <FontAwesomeIcon icon={faIdCard} className="mr-2 text-orange-600" />
+        <label htmlFor="licenseNumber" className="mb-2 block text-sm font-medium text-[#333333]">
+          <FontAwesomeIcon icon={faIdCard} className="mr-2 text-[#FF4D4D]" />
           License Number
         </label>
         <input
@@ -288,14 +288,14 @@ const OwnerProfileForm = ({ user, userDetails, onSuccess, onCancel }) => {
           value={form.licenseNumber}
           onChange={handleChange}
           placeholder="Driver's license number"
-          className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-slate-900 placeholder:text-slate-400 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50"
+          className="w-full rounded-lg border border-[#898989] bg-white px-4 py-2.5 text-slate-900 placeholder:text-slate-400 focus:border-[#FF4D4D] focus:outline-none focus:ring-2 focus:ring-[#FF4D4D]/50"
         />
       </div>
 
       {/* License Expiry */}
       <div>
-        <label htmlFor="licenseExpiry" className="mb-2 block text-sm font-medium text-slate-700">
-          <FontAwesomeIcon icon={faCalendar} className="mr-2 text-orange-600" />
+        <label htmlFor="licenseExpiry" className="mb-2 block text-sm font-medium text-[#333333]">
+          <FontAwesomeIcon icon={faCalendar} className="mr-2 text-[#FF4D4D]" />
           License Expiry Date
         </label>
         <input
@@ -305,14 +305,14 @@ const OwnerProfileForm = ({ user, userDetails, onSuccess, onCancel }) => {
           value={form.licenseExpiry}
           onChange={handleChange}
           min={new Date().toISOString().split("T")[0]}
-          className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50"
+          className="w-full rounded-lg border border-[#898989] bg-white px-4 py-2.5 text-slate-900 focus:border-[#FF4D4D] focus:outline-none focus:ring-2 focus:ring-[#FF4D4D]/50"
         />
       </div>
 
       {/* License Image */}
       <div>
-        <label className="mb-2 block text-sm font-medium text-slate-700">
-          <FontAwesomeIcon icon={faImage} className="mr-2 text-orange-600" />
+        <label className="mb-2 block text-sm font-medium text-[#333333]">
+          <FontAwesomeIcon icon={faImage} className="mr-2 text-[#FF4D4D]" />
           License Image
         </label>
         <div className="space-y-2">
@@ -320,10 +320,10 @@ const OwnerProfileForm = ({ user, userDetails, onSuccess, onCancel }) => {
             <img
               src={licenseImagePreview}
               alt="License"
-              className="max-h-48 rounded-lg border border-slate-300 object-contain"
+              className="max-h-48 rounded-lg border border-[#898989] object-contain"
             />
           )}
-          <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
+          <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-[#898989] bg-[#D9D9D9] px-4 py-2 text-sm font-medium text-[#555555] transition hover:bg-[#898989] hover:text-white">
             <FontAwesomeIcon icon={faImage} />
             {licenseImagePreview ? "Change License Image" : "Upload License Image"}
             <input
@@ -338,7 +338,7 @@ const OwnerProfileForm = ({ user, userDetails, onSuccess, onCancel }) => {
 
       {/* License Verification Status */}
       {userDetails?.isLicenseVerified && (
-        <div className="flex items-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2 text-emerald-700">
+        <div className="flex items-center gap-2 rounded-lg border border-[#4DFFBC] bg-[#4DFFBC]/10 px-4 py-2 text-[#555555]">
           <FontAwesomeIcon icon={faCheckCircle} />
           <span className="text-sm font-medium">License verified by admin</span>
         </div>
@@ -349,7 +349,7 @@ const OwnerProfileForm = ({ user, userDetails, onSuccess, onCancel }) => {
         <button
           type="submit"
           disabled={loading}
-          className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-orange-500 px-6 py-3 font-semibold text-white transition hover:bg-orange-600 disabled:opacity-60"
+          className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-[#FF4D4D] px-6 py-3 font-semibold text-white transition hover:bg-[#e63f3f] disabled:opacity-60"
         >
           <FontAwesomeIcon icon={faSave} />
           {loading ? "Saving..." : "Save Profile"}
@@ -359,7 +359,7 @@ const OwnerProfileForm = ({ user, userDetails, onSuccess, onCancel }) => {
             type="button"
             onClick={onCancel}
             disabled={loading}
-            className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-300 bg-white px-6 py-3 font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+            className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[#898989] bg-[#D9D9D9] px-6 py-3 font-semibold text-[#555555] transition hover:bg-[#898989] hover:text-white disabled:opacity-60"
           >
             <FontAwesomeIcon icon={faTimes} />
             Cancel

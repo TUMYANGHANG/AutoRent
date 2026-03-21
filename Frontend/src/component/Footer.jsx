@@ -114,12 +114,12 @@ const Footer = () => {
                     link === "Home"
                       ? "/"
                       : link === "Services"
-                      ? "/services"
-                      : link === "FAQ"
-                      ? "/faq"
-                      : link === "Contact"
-                      ? "/contact"
-                      : `#${link.toLowerCase().replace(/\s+/g, "-")}`;
+                        ? "/services"
+                        : link === "FAQ"
+                          ? "/faq"
+                          : link === "Contact"
+                            ? "/contact"
+                            : `#${link.toLowerCase().replace(/\s+/g, "-")}`;
                   const isRoute =
                     link === "Home" ||
                     link === "Services" ||
@@ -159,8 +159,8 @@ const Footer = () => {
                     link === "Privacy Policy"
                       ? "/privacy-policy"
                       : link === "Terms of Service"
-                      ? "/terms-of-service"
-                      : `#${link.toLowerCase().replace(/\s+/g, "-")}`;
+                        ? "/terms-of-service"
+                        : `#${link.toLowerCase().replace(/\s+/g, "-")}`;
                   const isRoute =
                     link === "Privacy Policy" || link === "Terms of Service";
 

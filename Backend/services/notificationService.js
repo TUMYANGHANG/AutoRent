@@ -2,10 +2,19 @@ import { and, desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { notifications, users } from "../schema/index.js";
 
+let ioInstance = null;
+
+const setNotificationSocket = (io) => {
+  ioInstance = io;
+};
+
 const NOTIFICATION_TYPES = {
   NEW_VEHICLE_SUBMITTED: "new_vehicle_submitted",
   VEHICLE_APPROVED: "vehicle_approved",
   VEHICLE_REJECTED: "vehicle_rejected",
+  BOOKING_REQUEST: "booking_request",
+  BOOKING_APPROVED: "booking_approved",
+  BOOKING_REJECTED: "booking_rejected",
 };
 
 /**
@@ -38,6 +47,11 @@ const createNotification = async ({
       actorUserId: actorUserId ?? null,
     })
     .returning();
+
+  if (ioInstance && recipientUserId) {
+    ioInstance.to(`user:${recipientUserId}`).emit("notification:new", row);
+  }
+
   return row;
 };
 
@@ -149,10 +163,9 @@ const getUserById = async (userId) => {
 export {
   createNotification,
   getNotificationsByUserId,
-  getUnreadCountByUserId,
-  getUsersByRole,
-  getUserById,
-  markAllAsReadByUserId,
+  getUnreadCountByUserId, getUserById, getUsersByRole, markAllAsReadByUserId,
   markNotificationAsRead,
   NOTIFICATION_TYPES,
+  setNotificationSocket
 };
+

@@ -13,7 +13,6 @@ router.get("/garages", getGaragesController);
 router.get("/garages/map", getGaragesForMapController);
 
 // Authenticated endpoints (crowd locating)
-router.use(authenticateToken);
-router.post("/garages", createGarageController);
+router.post("/garages", authenticateToken, createGarageController);
 
 export default router;

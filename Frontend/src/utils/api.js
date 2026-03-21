@@ -35,15 +35,14 @@ const apiRequest = async (endpoint, options = {}) => {
     }
 
     if (!response.ok) {
-      // Handle 401/403 - redirect to login
+      const message = data?.message || data?.error;
       if (response.status === 401 || response.status === 403) {
-        throw new Error("Access token required");
+        throw new Error(message || "Access token required");
       }
-      // Handle validation errors with detailed messages
       if (data.errors && Array.isArray(data.errors)) {
         throw new Error(data.errors.join(", "));
       }
-      throw new Error(data.message || data.error || "An error occurred");
+      throw new Error(message || "An error occurred");
     }
 
     return data;
@@ -200,9 +199,15 @@ export const vehicleAPI = {
 
 // Public / Renter API (no auth required for browse)
 export const renterAPI = {
-  /** Get all vehicles available for rent (verified + available) */
-  getVehiclesForRent: async () => {
-    return apiRequest("/vehicles/browse", { method: "GET" });
+  /** Get all vehicles available for rent (verified + available). Pass { lat, lng, radiusKm, nearby: true } for nearby sort. */
+  getVehiclesForRent: async (params = {}) => {
+    const qs = new URLSearchParams();
+    if (params.lat != null) qs.set("lat", params.lat);
+    if (params.lng != null) qs.set("lng", params.lng);
+    if (params.radiusKm != null) qs.set("radiusKm", params.radiusKm);
+    if (params.nearby === true) qs.set("nearby", "true");
+    const url = qs.toString() ? `/vehicles/browse?${qs.toString()}` : "/vehicles/browse";
+    return apiRequest(url, { method: "GET" });
   },
 
   /** Get a single vehicle by ID for rent (verified + available) */
@@ -231,6 +236,128 @@ export const garagesAPI = {
       method: "POST",
       body: JSON.stringify(garageData),
     });
+  },
+};
+
+// Booking requests API (renter submits request, owner approves/rejects)
+export const bookingRequestsAPI = {
+  create: async (data) => {
+    return apiRequest("/booking-requests", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  getMyRequests: async () => {
+    const res = await apiRequest("/booking-requests", { method: "GET" });
+    return res?.data ?? [];
+  },
+
+  getForOwner: async () => {
+    const res = await apiRequest("/booking-requests/owner", { method: "GET" });
+    return res?.data ?? [];
+  },
+
+  getById: async (requestId) => {
+    const res = await apiRequest(`/booking-requests/${requestId}`, { method: "GET" });
+    return res?.data ?? null;
+  },
+
+  approve: async (requestId) => {
+    return apiRequest(`/booking-requests/${requestId}/approve`, { method: "PATCH" });
+  },
+
+  reject: async (requestId, rejectionReason) => {
+    return apiRequest(`/booking-requests/${requestId}/reject`, {
+      method: "PATCH",
+      body: JSON.stringify({ rejectionReason: rejectionReason || null }),
+    });
+  },
+
+  cancel: async (requestId) => {
+    return apiRequest(`/booking-requests/${requestId}/cancel`, { method: "PATCH" });
+  },
+};
+
+// Vehicle reviews API
+export const reviewsAPI = {
+  /** Get reviews and rating stats for a vehicle (public). */
+  getForVehicle: async (vehicleId, params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    const url = qs
+      ? `/vehicles/${vehicleId}/reviews?${qs}`
+      : `/vehicles/${vehicleId}/reviews`;
+    const res = await apiRequest(url, { method: "GET" });
+    return res?.data ?? { reviews: [], averageRating: null, reviewCount: 0 };
+  },
+
+  /** Get current user's review and eligibility (auth required). */
+  getMyReview: async (vehicleId) => {
+    const res = await apiRequest(`/vehicles/${vehicleId}/reviews/me`, {
+      method: "GET",
+    });
+    return res?.data ?? null;
+  },
+
+  /** Create or update review (auth required). */
+  create: async (vehicleId, { rating, comment, bookingId }) => {
+    const res = await apiRequest(`/vehicles/${vehicleId}/reviews`, {
+      method: "POST",
+      body: JSON.stringify({ rating, comment, bookingId }),
+    });
+    return res?.data ?? null;
+  },
+};
+
+// Bookings API (confirmed bookings only; created when owner approves a request)
+export const bookingsAPI = {
+  getById: async (bookingId) => {
+    const res = await apiRequest(`/bookings/${bookingId}`, { method: "GET" });
+    return res?.data ?? null;
+  },
+
+  getMyBookings: async () => {
+    const res = await apiRequest("/bookings", { method: "GET" });
+    return res?.data ?? [];
+  },
+
+  /** Get owner dashboard stats (active rentals, total earnings). Owner only. */
+  getOwnerStats: async () => {
+    const res = await apiRequest("/bookings/stats", { method: "GET" });
+    return res?.data ?? { activeRentals: 0, totalEarnings: 0 };
+  },
+
+  cancel: async (bookingId) => {
+    return apiRequest(`/bookings/${bookingId}/cancel`, {
+      method: "PATCH",
+    });
+  },
+};
+
+// Khalti payment API
+export const khaltiAPI = {
+  /** Initiate Khalti payment for a booking. Returns { paymentUrl, pidx }. */
+  initiate: async (bookingId) => {
+    const returnUrl = `${window.location.origin}/payment/return`;
+    const websiteUrl = window.location.origin;
+    const res = await apiRequest("/payments/khalti/initiate", {
+      method: "POST",
+      body: JSON.stringify({
+        bookingId,
+        returnUrl,
+        websiteUrl,
+      }),
+    });
+    return res;
+  },
+
+  /** Verify Khalti payment after redirect. Pass pidx and purchaseOrderId from URL. */
+  verify: async (pidx, purchaseOrderId) => {
+    const res = await apiRequest("/payments/khalti/verify", {
+      method: "POST",
+      body: JSON.stringify({ pidx, purchaseOrderId }),
+    });
+    return res;
   },
 };
 
@@ -280,6 +407,51 @@ export const notificationsAPI = {
 
   markAllAsRead: async () => {
     return apiRequest("/notifications/read-all", { method: "PATCH" });
+  },
+};
+
+// Chat API (auth required)
+export const chatAPI = {
+  /** Get list of owners (for renters) */
+  getOwners: async () => {
+    const res = await apiRequest("/chat/owners", { method: "GET" });
+    return res?.data ?? [];
+  },
+
+  /** Get list of renters (for owners) */
+  getRenters: async () => {
+    const res = await apiRequest("/chat/renters", { method: "GET" });
+    return res?.data ?? [];
+  },
+
+  /**
+   * Ensure a conversation exists with targetUserId (owner for renter, renter for owner)
+   * Body: { targetUserId }
+   */
+  ensureConversation: async ({ targetUserId }) => {
+    const res = await apiRequest("/chat/conversations", {
+      method: "POST",
+      body: JSON.stringify({ targetUserId: targetUserId || undefined }),
+    });
+    return res?.data ?? null;
+  },
+
+  /** Get messages for a conversation */
+  getMessages: async (conversationId, limit = 50) => {
+    const res = await apiRequest(
+      `/chat/conversations/${conversationId}/messages?limit=${limit}`,
+      { method: "GET" },
+    );
+    return res?.data ?? { conversation: null, messages: [] };
+  },
+
+  /** Send message over HTTP (fallback / testing without sockets) */
+  sendMessageHttp: async (conversationId, text) => {
+    const res = await apiRequest(`/chat/conversations/${conversationId}/messages`, {
+      method: "POST",
+      body: JSON.stringify({ text }),
+    });
+    return res?.data ?? null;
   },
 };
 

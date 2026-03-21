@@ -39,6 +39,9 @@ const vehicles = pgTable("vehicles", {
   status: vehicleStatusEnum("status").default("available").notNull(),
   description: text("description"),
   isVerified: boolean("is_verified").default(false).notNull(),
+  pickupLatitude: decimal("pickup_latitude", { precision: 10, scale: 7 }),
+  pickupLongitude: decimal("pickup_longitude", { precision: 10, scale: 7 }),
+  pickupAddress: varchar("pickup_address", { length: 500 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

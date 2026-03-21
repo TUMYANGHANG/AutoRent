@@ -4,9 +4,11 @@ import {
   faGasPump,
   faGears,
   faHeart,
+  faLocationDot,
   faPeopleGroup,
   faShieldHalved,
 } from "@fortawesome/free-solid-svg-icons";
+import StarRating from "../component/StarRating.jsx";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -55,6 +57,15 @@ export const VehicleCard = ({ vehicle, isFavorite = false, onFavoriteClick }) =>
           </div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+        {(vehicle.status === "rented" || vehicle.status === "Rented") ? (
+          <div className="absolute left-3 top-3 rounded-lg bg-red-500/90 px-3 py-1.5 text-sm font-bold text-white shadow-lg">
+            Rented
+          </div>
+        ) : (
+          <div className="absolute left-3 top-3 rounded-lg bg-emerald-500/90 px-3 py-1.5 text-sm font-bold text-white shadow-lg">
+            Available
+          </div>
+        )}
         {onFavoriteClick != null && (
           <button
             type="button"
@@ -76,6 +87,20 @@ export const VehicleCard = ({ vehicle, isFavorite = false, onFavoriteClick }) =>
         </h3>
         {vehicle.manufactureYear && (
           <p className="text-sm text-white/60">{vehicle.manufactureYear}</p>
+        )}
+        {(vehicle.averageRating != null || vehicle.reviewCount > 0) && (
+          <div className="mt-1 flex items-center gap-2">
+            <StarRating rating={vehicle.averageRating} size="sm" />
+            <span className="text-xs text-white/60">
+              {vehicle.reviewCount} review{vehicle.reviewCount !== 1 ? "s" : ""}
+            </span>
+          </div>
+        )}
+        {vehicle.distanceKm != null && (
+          <p className="mt-1 flex items-center gap-1.5 text-sm text-orange-400/90">
+            <FontAwesomeIcon icon={faLocationDot} className="h-3.5 w-3" />
+            {vehicle.distanceKm} km away
+          </p>
         )}
         <div className="mt-2 flex flex-wrap gap-2 text-xs text-white/70">
           {seats != null && (
@@ -103,7 +128,11 @@ export const VehicleCard = ({ vehicle, isFavorite = false, onFavoriteClick }) =>
             {pricePerDay}
             <span className="text-sm font-normal text-white/60">/day</span>
           </span>
-          <span className="rounded-lg bg-orange-500/20 px-3 py-1.5 text-sm font-semibold text-orange-400 ring-1 ring-orange-500/30 transition group-hover:bg-orange-500/30">
+          <span className={`rounded-lg px-3 py-1.5 text-sm font-semibold ring-1 transition ${
+            (vehicle.status === "rented" || vehicle.status === "Rented")
+              ? "bg-red-500/20 text-red-400 ring-red-500/30 opacity-90"
+              : "bg-orange-500/20 text-orange-400 ring-orange-500/30 group-hover:bg-orange-500/30"
+          }`}>
             View details
           </span>
         </div>
@@ -121,6 +150,10 @@ const RentVehicle = () => {
   const [filterFuel, setFilterFuel] = useState("all");
   const [filterTransmission, setFilterTransmission] = useState("all");
   const [currentUser, setCurrentUser] = useState(null);
+  const [nearbyMode, setNearbyMode] = useState(false);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [locationError, setLocationError] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
   const isAuthenticated = !!getAuthToken();
   const isRenterUnverified =
     isAuthenticated &&
@@ -136,37 +169,88 @@ const RentVehicle = () => {
     return () => { cancelled = true; };
   }, [isAuthenticated]);
 
+  const fetchVehicles = async (opts = {}) => {
+    setLoading(true);
+    setError(null);
+    setLocationError(null);
+    try {
+      const res = await renterAPI.getVehiclesForRent(opts);
+      if (res?.data) setVehicles(res.data);
+    } catch (err) {
+      const errorMessage = err?.message ?? "Failed to load vehicles";
+      if (
+        errorMessage.includes("Access token required") ||
+        errorMessage.includes("Unauthorized") ||
+        errorMessage.includes("401") ||
+        err?.response?.status === 401
+      ) {
+        navigate("/", { state: { openLogin: true } });
+      } else {
+        setError(errorMessage);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     let cancelled = false;
-    const fetchVehicles = async () => {
+    (async () => {
       try {
-        setLoading(true);
-        setError(null);
+        if (!cancelled) setLoading(true);
         const res = await renterAPI.getVehiclesForRent();
         if (!cancelled && res?.data) setVehicles(res.data);
       } catch (err) {
+        if (cancelled) return;
         const errorMessage = err?.message ?? "Failed to load vehicles";
-        if (!cancelled) {
-          if (
-            errorMessage.includes("Access token required") ||
-            errorMessage.includes("Unauthorized") ||
-            errorMessage.includes("401") ||
-            err?.response?.status === 401
-          ) {
-            navigate("/", { state: { openLogin: true } });
-          } else {
-            setError(errorMessage);
-          }
+        if (
+          errorMessage.includes("Access token required") ||
+          errorMessage.includes("Unauthorized") ||
+          errorMessage.includes("401") ||
+          err?.response?.status === 401
+        ) {
+          navigate("/", { state: { openLogin: true } });
+        } else {
+          setError(errorMessage);
         }
       } finally {
         if (!cancelled) setLoading(false);
       }
-    };
-    fetchVehicles();
-    return () => {
-      cancelled = true;
-    };
+    })();
+    return () => { cancelled = true; };
   }, [navigate]);
+
+  const handleFindNearby = () => {
+    setLocationLoading(true);
+    setLocationError(null);
+    if (!navigator.geolocation) {
+      setLocationError("Location is not supported by your browser.");
+      setLocationLoading(false);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setUserLocation({ lat, lng });
+        setNearbyMode(true);
+        fetchVehicles({ lat, lng, nearby: true });
+        setLocationLoading(false);
+      },
+      (err) => {
+        setLocationError(err.message || "Could not get your location. Allow location access and try again.");
+        setLocationLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
+  };
+
+  const handleShowAll = () => {
+    setNearbyMode(false);
+    setUserLocation(null);
+    setLocationError(null);
+    fetchVehicles();
+  };
 
   const filterOptions = useMemo(() => {
     const types = new Set(["all"]);
@@ -309,9 +393,38 @@ const RentVehicle = () => {
                 Clear filters
               </button>
             )}
+            <div className="flex items-center gap-2">
+              {nearbyMode ? (
+                <button
+                  type="button"
+                  onClick={handleShowAll}
+                  className="inline-flex items-center gap-2 rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white/10"
+                >
+                  Show all vehicles
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleFindNearby}
+                  disabled={locationLoading}
+                  className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-orange-600 disabled:opacity-60"
+                >
+                  <FontAwesomeIcon icon={faLocationDot} className="h-4 w-4" />
+                  {locationLoading ? "Getting location…" : "Find nearby"}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </section>
+
+      {locationError && (
+        <div className="mx-auto max-w-7xl px-4 py-2 sm:px-6 lg:px-8">
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-200 text-sm">
+            {locationError}
+          </div>
+        </div>
+      )}
 
       <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         {loading && (
@@ -334,11 +447,24 @@ const RentVehicle = () => {
               className="mx-auto h-16 w-16 text-white/20"
             />
             <h2 className="mt-4 text-xl font-semibold text-white">
-              No vehicles available yet
+              {nearbyMode
+                ? "No vehicles with pickup location near you"
+                : "No vehicles available yet"}
             </h2>
             <p className="mt-2 text-white/70">
-              Verified vehicles will show up here. Check back soon.
+              {nearbyMode
+                ? "Owners can set a pickup location when listing. Try ‘Show all vehicles’ to see the full list."
+                : "Verified vehicles will show up here. Check back soon."}
             </p>
+            {nearbyMode && (
+              <button
+                type="button"
+                onClick={handleShowAll}
+                className="mt-4 inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-orange-600"
+              >
+                Show all vehicles
+              </button>
+            )}
           </div>
         )}
 

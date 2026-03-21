@@ -113,3 +113,7 @@ server.listen(PORT, async () => {
   startBookingScheduler();
 });
 
+app.use(cors({
+  origin: 'https://autorentfyp.vercel.app',
+  credentials: true
+}));

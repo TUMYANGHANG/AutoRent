@@ -1,7 +1,8 @@
 import "maplibre-gl/dist/maplibre-gl.css";
 import maplibregl from "maplibre-gl";
 import { useEffect, useRef, useState } from "react";
-import { garagesAPI } from "../utils/api.js";
+import { useNavigate } from "react-router-dom";
+import { garagesAPI, getAuthToken } from "../utils/api.js";
 
 // Same default styles as mapcn (CARTO basemap – no API key required)
 const CARTO_STYLES = {
@@ -21,6 +22,15 @@ function streetViewUrl(lat, lng) {
 }
 
 const GaragesMap = () => {
+  const navigate = useNavigate();
+  const isAuthenticated = !!getAuthToken();
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate("/", { state: { openLogin: true } });
+    }
+  }, [isAuthenticated, navigate]);
+
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const [garages, setGarages] = useState([]);

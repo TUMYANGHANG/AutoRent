@@ -332,14 +332,6 @@ const RenterDashboard = ({ user }) => {
             </div>
             <button
               type="button"
-              onClick={() => setActiveTab(TABS.chat)}
-              className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-5 py-3 font-semibold text-white/90 ring-1 ring-white/20 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-            >
-              <FontAwesomeIcon icon={faComments} className="h-5 w-5" />
-              Chat
-            </button>
-            <button
-              type="button"
               onClick={handleLogout}
               className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-5 py-3 font-semibold text-white/90 ring-1 ring-white/20 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/50"
             >

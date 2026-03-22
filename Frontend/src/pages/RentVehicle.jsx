@@ -161,6 +161,12 @@ const RentVehicle = () => {
     currentUser?.isProfileVerified === false;
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      navigate("/", { state: { openLogin: true } });
+    }
+  }, [isAuthenticated, navigate]);
+
+  useEffect(() => {
     if (!isAuthenticated) return;
     let cancelled = false;
     authAPI.me().then((u) => {

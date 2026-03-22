@@ -3,13 +3,17 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5002/api"
 // Helper function to make API requests
 const apiRequest = async (endpoint, options = {}) => {
   const url = `${API_BASE_URL}${endpoint}`;
-  
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 seconds
+
   const config = {
     headers: {
       "Content-Type": "application/json",
       ...options.headers,
     },
     ...options,
+    signal: controller.signal,
   };
 
   // Add auth token if available
@@ -20,7 +24,7 @@ const apiRequest = async (endpoint, options = {}) => {
 
   try {
     const response = await fetch(url, config);
-    
+    clearTimeout(timeoutId);
     // Handle non-JSON responses (like HTML error pages)
     let data;
     const contentType = response.headers.get("content-type");
@@ -39,6 +43,9 @@ const apiRequest = async (endpoint, options = {}) => {
       if (response.status === 401 || response.status === 403) {
         throw new Error(message || "Access token required");
       }
+      if (controller.signal.aborted) {
+        throw new Error("Request timed out");
+      } 
       if (data.errors && Array.isArray(data.errors)) {
         throw new Error(data.errors.join(", "));
       }

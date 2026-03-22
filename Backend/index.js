@@ -105,9 +105,9 @@ server.listen(PORT, async () => {
 
   try {
     await verifyMailConnection();
-    console.log("Nodemailer (SMTP): ready");
+    console.log("SendGrid: ready");
   } catch (err) {
-    console.error("Nodemailer (SMTP): not ready -", err?.message || err);
+    console.error("SendGrid: not ready -", err?.message || err);
   }
 
   startBookingScheduler();

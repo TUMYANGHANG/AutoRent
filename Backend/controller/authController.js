@@ -12,8 +12,8 @@ import { createOTP, generateOTP, validateOTP, verifyOTP } from "../services/otpS
 const register = async (req, res) => {
   try {
     const { email, password, firstName, lastName, role } = req.body;
+    console.log(`[Register] Start for ${email}`);
 
-    // Check if user already exists
     const existingUser = await db
       .select()
       .from(users)
@@ -21,25 +21,22 @@ const register = async (req, res) => {
       .limit(1);
 
     if (existingUser.length > 0) {
+      console.log(`[Register] Duplicate email: ${email}`);
       return res.status(409).json({
         success: false,
         message: "User with this email already exists",
       });
     }
 
-    // Hash password
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Generate OTP
     const otp = generateOTP();
-    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-    // Validate and set role (default to "renter" if not provided or invalid)
     const validRoles = ["renter", "owner"];
     const userRole = role && validRoles.includes(role) ? role : "renter";
 
-    // Create user with OTP
     const [newUser] = await db
       .insert(users)
       .values({
@@ -54,14 +51,16 @@ const register = async (req, res) => {
       })
       .returning();
 
+    console.log(`[Register] User created (id: ${newUser.id}), sending OTP email…`);
+
     try {
       await sendOTPEmail(email.toLowerCase(), otp);
+      console.log(`[Register] OTP email sent to ${email}`);
     } catch (emailError) {
-      console.error("Failed to send OTP email:", emailError);
-      // User is created but email failed - they can request resend
+      console.error(`[Register] OTP email FAILED for ${email}:`, emailError.message);
       return res.status(201).json({
         success: true,
-        message: "User registered successfully, but failed to send verification email. Please request a new OTP.",
+        message: "Account created, but we couldn't send the verification email. Please use 'Resend OTP' to try again.",
         user: {
           id: newUser.id,
           email: newUser.email,
@@ -73,7 +72,6 @@ const register = async (req, res) => {
       });
     }
 
-    // Remove password, otp, and otpExpiresAt from response
     const { password: _, otp: __, otpExpiresAt: ___, ...userResponse } = newUser;
 
     res.status(201).json({
@@ -82,7 +80,7 @@ const register = async (req, res) => {
       user: userResponse,
     });
   } catch (error) {
-    console.error("Registration error:", error);
+    console.error("[Register] Error:", error.message);
     res.status(500).json({
       success: false,
       message: "Internal server error during registration",
@@ -172,7 +170,8 @@ const resendOTP = async (req, res) => {
       });
     }
 
-    // Check if user exists
+    console.log(`[ResendOTP] Request for ${email}`);
+
     const [user] = await db
       .select()
       .from(users)
@@ -186,7 +185,6 @@ const resendOTP = async (req, res) => {
       });
     }
 
-    // Check if already verified
     if (user.isEmailVerified) {
       return res.status(400).json({
         success: false,
@@ -194,24 +192,24 @@ const resendOTP = async (req, res) => {
       });
     }
 
-    // Generate and send new OTP
     const otp = await createOTP(email.toLowerCase());
 
     try {
       await sendOTPEmail(email.toLowerCase(), otp);
+      console.log(`[ResendOTP] OTP sent to ${email}`);
       res.status(200).json({
         success: true,
         message: "OTP sent successfully. Please check your email.",
       });
     } catch (emailError) {
-      console.error("Failed to send OTP email:", emailError);
+      console.error(`[ResendOTP] Email FAILED for ${email}:`, emailError.message);
       res.status(500).json({
         success: false,
         message: "Failed to send OTP email. Please try again later.",
       });
     }
   } catch (error) {
-    console.error("Resend OTP error:", error);
+    console.error("[ResendOTP] Error:", error.message);
     res.status(500).json({
       success: false,
       message: "Internal server error",
@@ -315,6 +313,8 @@ const forgotPassword = async (req, res) => {
       });
     }
 
+    console.log(`[ForgotPassword] Request for ${email}`);
+
     const [user] = await db
       .select({ id: users.id })
       .from(users)
@@ -332,19 +332,20 @@ const forgotPassword = async (req, res) => {
 
     try {
       await sendPasswordResetOTPEmail(email.toLowerCase(), otp);
+      console.log(`[ForgotPassword] OTP sent to ${email}`);
       res.status(200).json({
         success: true,
         message: "OTP has been sent to your email. Use it to reset your password.",
       });
     } catch (emailError) {
-      console.error("Failed to send password reset OTP email:", emailError);
+      console.error(`[ForgotPassword] Email FAILED for ${email}:`, emailError.message);
       res.status(500).json({
         success: false,
         message: "Failed to send OTP email. Please try again later.",
       });
     }
   } catch (error) {
-    console.error("Forgot password error:", error);
+    console.error("[ForgotPassword] Error:", error.message);
     res.status(500).json({
       success: false,
       message: "Internal server error",

@@ -25,7 +25,7 @@ const apiRequest = async (endpoint, options = {}) => {
   try {
     const response = await fetch(url, config);
     clearTimeout(timeoutId);
-    // Handle non-JSON responses (like HTML error pages)
+
     let data;
     const contentType = response.headers.get("content-type");
     if (contentType && contentType.includes("application/json")) {
@@ -43,9 +43,6 @@ const apiRequest = async (endpoint, options = {}) => {
       if (response.status === 401 || response.status === 403) {
         throw new Error(message || "Access token required");
       }
-      if (controller.signal.aborted) {
-        throw new Error("Request timed out");
-      } 
       if (data.errors && Array.isArray(data.errors)) {
         throw new Error(data.errors.join(", "));
       }
@@ -54,6 +51,13 @@ const apiRequest = async (endpoint, options = {}) => {
 
     return data;
   } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === "AbortError") {
+      throw new Error("Request timed out. Please check your connection and try again.");
+    }
+    if (error.message === "Failed to fetch") {
+      throw new Error("Unable to reach the server. Please check your connection.");
+    }
     throw error;
   }
 };

@@ -9,6 +9,9 @@ const KHALTI_BASE_URL = (process.env.KHALTI_BASE_URL || "https://dev.khalti.com/
   ""
 );
 
+console.log(`[Khalti] Base URL: ${KHALTI_BASE_URL}`);
+console.log(`[Khalti] Secret key: ${KHALTI_SECRET_KEY ? KHALTI_SECRET_KEY.slice(0, 8) + "…" : "NOT SET"}`);
+
 /**
  * Initiate Khalti ePayment. Returns { pidx, payment_url, expires_at, expires_in }.
  * @param {Object} params
@@ -49,7 +52,10 @@ export const initiatePayment = async ({
     ...(customerInfo && { customer_info: customerInfo }),
   };
 
-  const res = await fetch(`${KHALTI_BASE_URL}/epayment/initiate/`, {
+  const url = `${KHALTI_BASE_URL}/epayment/initiate/`;
+  console.log(`[Khalti] Initiating payment:`, { url, amount: amountPaisa, purchaseOrderId });
+
+  const res = await fetch(url, {
     method: "POST",
     headers: {
       Authorization: `Key ${KHALTI_SECRET_KEY}`,
@@ -61,12 +67,14 @@ export const initiatePayment = async ({
   const data = await res.json();
 
   if (!res.ok) {
+    console.error(`[Khalti] Initiate FAILED (${res.status}):`, JSON.stringify(data));
     const msg = data?.detail || data?.return_url?.[0] || data?.amount?.[0] || JSON.stringify(data);
     const err = new Error(msg || "Khalti initiate failed");
     err.code = "KHALTI_ERROR";
     throw err;
   }
 
+  console.log(`[Khalti] Initiate OK – pidx: ${data.pidx}`);
   return data;
 };
 
@@ -80,6 +88,8 @@ export const lookupPayment = async (pidx) => {
     throw err;
   }
 
+  console.log(`[Khalti] Looking up pidx: ${pidx}`);
+
   const res = await fetch(`${KHALTI_BASE_URL}/epayment/lookup/`, {
     method: "POST",
     headers: {
@@ -92,10 +102,12 @@ export const lookupPayment = async (pidx) => {
   const data = await res.json();
 
   if (!res.ok) {
+    console.error(`[Khalti] Lookup FAILED (${res.status}):`, JSON.stringify(data));
     const err = new Error(data?.detail || "Khalti lookup failed");
     err.code = "KHALTI_ERROR";
     throw err;
   }
 
+  console.log(`[Khalti] Lookup OK – status: ${data.status}`);
   return data;
 };

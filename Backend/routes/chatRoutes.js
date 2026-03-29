@@ -1,6 +1,7 @@
 import express from "express";
 import {
   createConversationController,
+  deleteMessageController,
   getMessagesController,
   getMyConversationsController,
   getOwnersController,
@@ -20,6 +21,7 @@ router.post("/chat/conversations", createConversationController);
 router.get("/chat/conversations", getMyConversationsController);
 router.get("/chat/conversations/:id/messages", getMessagesController);
 router.post("/chat/conversations/:id/messages", postMessageController);
+router.delete("/chat/messages/:messageId", deleteMessageController);
 
 export default router;
 

@@ -1,4 +1,4 @@
-import { and, eq, lte, or } from "drizzle-orm";
+import { and, eq, lte, or, sql } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { bookings } from "../schema/booking.js";
 import { vehicles } from "../schema/vehicle.js";
@@ -11,7 +11,7 @@ async function activateStartedBookings() {
 
   const rows = await db
     .update(bookings)
-    .set({ status: "in_progress", updatedAt: new Date() })
+    .set({ status: "in_progress", updatedAt: sql`now()` })
     .where(
       and(
         eq(bookings.status, "confirmed"),
@@ -50,7 +50,7 @@ async function completeExpiredBookings() {
   for (const id of bookingIds) {
     await db
       .update(bookings)
-      .set({ status: "completed", updatedAt: new Date() })
+      .set({ status: "completed", updatedAt: sql`now()` })
       .where(eq(bookings.id, id));
   }
 
@@ -73,7 +73,7 @@ async function completeExpiredBookings() {
     if (!activeBooking) {
       await db
         .update(vehicles)
-        .set({ status: "available", updatedAt: new Date() })
+        .set({ status: "available", updatedAt: sql`now()` })
         .where(eq(vehicles.id, vehicleId));
     }
   }

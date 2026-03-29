@@ -1,5 +1,6 @@
 import express from "express";
 import {
+  getAdminReportStatsController,
   getAdminStatsController,
   getAllVehiclesController,
   getVehicleByIdAdminController,
@@ -37,7 +38,6 @@ router.get("/admin/stats", authenticateToken, getAdminStatsController);
 router.get("/admin/vehicles", authenticateToken, getAllVehiclesController);
 router.get("/admin/vehicles/:id", authenticateToken, getVehicleByIdAdminController);
 router.patch("/admin/vehicles/:id/verify", authenticateToken, updateVehicleVerifyController);
-
-
+router.get("/admin/reports", authenticateToken, getAdminReportStatsController);
 
 export default router;

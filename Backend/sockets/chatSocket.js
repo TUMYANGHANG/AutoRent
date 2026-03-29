@@ -1,5 +1,6 @@
 import {
   createMessageInConversation,
+  deleteMessageById,
   getConversationForUser,
 } from "../services/chatService.js";
 
@@ -33,13 +34,14 @@ const registerChatHandlers = (io, socket) => {
 
   socket.on("sendMessage", async (payload) => {
     try {
-      const { conversationId, text } = payload || {};
-      if (!conversationId || !text) return;
+      const { conversationId, text, attachmentUrl } = payload || {};
+      if (!conversationId || (!text && !attachmentUrl)) return;
 
       const { conversation, message } = await createMessageInConversation(
         conversationId,
         userId,
         text,
+        attachmentUrl,
       );
 
       const enrichedMessage = {
@@ -47,32 +49,50 @@ const registerChatHandlers = (io, socket) => {
         conversationId,
         senderId: message.senderId,
         text: message.text,
+        attachmentUrl: message.attachmentUrl,
         createdAt: message.createdAt,
       };
 
       const messagePayload = { conversationId, message: enrichedMessage };
 
-      // Emit to conversation room (for users who have joined)
       io.to(`conv:${conversationId}`).emit("message", messagePayload);
 
-      // Also emit to both users' personal rooms so the recipient receives even if
-      // they haven't joined the conv room yet (e.g. race on join)
       io.to(`user:${conversation.renterId}`).emit("message", messagePayload);
       io.to(`user:${conversation.ownerId}`).emit("message", messagePayload);
 
-      // Lightweight event for list views
+      const previewText = message.text || "📷 Photo";
       io.to(`user:${conversation.renterId}`).emit("conversationUpdated", {
         conversationId,
-        lastMessageText: message.text,
+        lastMessageText: previewText,
         lastMessageAt: message.createdAt,
       });
       io.to(`user:${conversation.ownerId}`).emit("conversationUpdated", {
         conversationId,
-        lastMessageText: message.text,
+        lastMessageText: previewText,
         lastMessageAt: message.createdAt,
       });
     } catch (err) {
       socket.emit("chatError", { message: err.message || "Failed to send message" });
+    }
+  });
+
+  socket.on("deleteMessage", async (payload) => {
+    try {
+      const { messageId } = payload || {};
+      if (!messageId) return;
+
+      const { conversationId, conversation } = await deleteMessageById(messageId, userId);
+
+      const deletePayload = { conversationId, messageId };
+
+      io.to(`conv:${conversationId}`).emit("messageDeleted", deletePayload);
+
+      if (conversation) {
+        io.to(`user:${conversation.renterId}`).emit("messageDeleted", deletePayload);
+        io.to(`user:${conversation.ownerId}`).emit("messageDeleted", deletePayload);
+      }
+    } catch (err) {
+      socket.emit("chatError", { message: err.message || "Failed to delete message" });
     }
   });
 };

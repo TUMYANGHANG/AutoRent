@@ -494,7 +494,7 @@ const VehicleBook = () => {
             </h3>
             <p className="text-white/70">
               The owner will review your request. After approval, you can pay
-              online with Khalti or pay when you pick up the vehicle.
+              online with Stripe or Khalti, or pay when you pick up the vehicle.
             </p>
             <div className="space-y-3">
               <div className="flex w-full items-center gap-4 rounded-xl border-2 border-orange-500 bg-orange-500/10 px-4 py-4">
@@ -515,22 +515,21 @@ const VehicleBook = () => {
                 </span>
               </div>
 
-              <div
-                className="flex cursor-not-allowed items-center gap-4 rounded-xl border border-white/10 bg-white/5 px-4 py-4 opacity-60"
-                title="Coming soon"
-              >
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/5">
+              <div className="flex cursor-default items-center gap-4 rounded-xl border border-[#635BFF]/50 bg-[#635BFF]/10 px-4 py-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#635BFF]/20">
                   <FontAwesomeIcon
                     icon={faCreditCard}
-                    className="h-6 w-6 text-white/40"
+                    className="h-6 w-6 text-[#A78BFA]"
                   />
                 </div>
                 <div className="flex-1">
-                  <p className="font-semibold text-white/70">Stripe (Card)</p>
-                  <p className="text-sm text-white/50">Coming soon</p>
+                  <p className="font-semibold text-white">Stripe (card)</p>
+                  <p className="text-sm text-white/60">
+                    Pay with card after owner approves (from your dashboard)
+                  </p>
                 </div>
-                <span className="rounded-full bg-white/20 px-3 py-1 text-xs text-white/60">
-                  Soon
+                <span className="rounded-full bg-[#635BFF]/40 px-3 py-1 text-xs font-medium text-white">
+                  Available
                 </span>
               </div>
 

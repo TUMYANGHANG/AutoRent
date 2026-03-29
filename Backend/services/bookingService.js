@@ -318,11 +318,226 @@ const getOwnerStats = async (ownerId) => {
   };
 };
 
+/**
+ * Paid revenue timestamp: when payment was marked paid.
+ */
+const paidTimestamp = sql`coalesce(${payments.paidAt}, ${payments.updatedAt})`;
+
+/**
+ * Owner earnings dashboard: monthly comparison, top vehicles, pending total.
+ */
+const getOwnerEarningsReport = async (ownerId) => {
+  const [totalRow] = await db
+    .select({
+      total: sql`coalesce(sum(${payments.amount})::numeric, 0)`,
+    })
+    .from(payments)
+    .innerJoin(bookings, eq(payments.bookingId, bookings.id))
+    .where(and(eq(bookings.ownerId, ownerId), eq(payments.status, "paid")));
+
+  const [thisMonthRow] = await db
+    .select({
+      total: sql`coalesce(sum(${payments.amount})::numeric, 0)`,
+    })
+    .from(payments)
+    .innerJoin(bookings, eq(payments.bookingId, bookings.id))
+    .where(
+      and(
+        eq(bookings.ownerId, ownerId),
+        eq(payments.status, "paid"),
+        sql`date_trunc('month', ${paidTimestamp}) = date_trunc('month', now())`
+      )
+    );
+
+  const [lastMonthRow] = await db
+    .select({
+      total: sql`coalesce(sum(${payments.amount})::numeric, 0)`,
+    })
+    .from(payments)
+    .innerJoin(bookings, eq(payments.bookingId, bookings.id))
+    .where(
+      and(
+        eq(bookings.ownerId, ownerId),
+        eq(payments.status, "paid"),
+        sql`date_trunc('month', ${paidTimestamp}) = date_trunc('month', now() - interval '1 month')`
+      )
+    );
+
+  const [pendingRow] = await db
+    .select({
+      total: sql`coalesce(sum(${payments.amount})::numeric, 0)`,
+    })
+    .from(payments)
+    .innerJoin(bookings, eq(payments.bookingId, bookings.id))
+    .where(and(eq(bookings.ownerId, ownerId), eq(payments.status, "pending")));
+
+  const totalEarnings = Number(totalRow?.total ?? 0);
+  const thisMonthEarnings = Number(thisMonthRow?.total ?? 0);
+  const lastMonthEarnings = Number(lastMonthRow?.total ?? 0);
+  const pendingPaymentsTotal = Number(pendingRow?.total ?? 0);
+
+  let monthOverMonthChangePct = 0;
+  if (lastMonthEarnings > 0) {
+    monthOverMonthChangePct =
+      ((thisMonthEarnings - lastMonthEarnings) / lastMonthEarnings) * 100;
+  } else if (thisMonthEarnings > 0) {
+    monthOverMonthChangePct = 100;
+  }
+
+  const WEEKS = 4;
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const startOfCurrentWeek = new Date(now);
+  startOfCurrentWeek.setDate(now.getDate() - diffToMonday);
+  startOfCurrentWeek.setHours(0, 0, 0, 0);
+
+  const firstWeekStart = new Date(startOfCurrentWeek);
+  firstWeekStart.setDate(firstWeekStart.getDate() - (WEEKS - 1) * 7);
+  // postgres.js cannot bind JS Date as a param; use ISO strings for comparisons.
+  const firstWeekStartIso = firstWeekStart.toISOString();
+
+  const weeklyRows = await db
+    .select({
+      weekStart: sql`date_trunc('week', ${paidTimestamp})::date`.as("week_start"),
+      total: sql`coalesce(sum(${payments.amount})::numeric, 0)`,
+    })
+    .from(payments)
+    .innerJoin(bookings, eq(payments.bookingId, bookings.id))
+    .where(
+      and(
+        eq(bookings.ownerId, ownerId),
+        eq(payments.status, "paid"),
+        gte(paidTimestamp, firstWeekStartIso)
+      )
+    )
+    .groupBy(sql`date_trunc('week', ${paidTimestamp})::date`)
+    .orderBy(sql`date_trunc('week', ${paidTimestamp})::date`);
+
+  const weeklyMap = new Map();
+  for (const r of weeklyRows) {
+    const key =
+      r.weekStart instanceof Date
+        ? r.weekStart.toISOString().slice(0, 10)
+        : String(r.weekStart).slice(0, 10);
+    weeklyMap.set(key, Number(r.total));
+  }
+
+  const weeklyEarnings = [];
+  for (let i = 0; i < WEEKS; i++) {
+    const ws = new Date(firstWeekStart);
+    ws.setDate(ws.getDate() + i * 7);
+    const key = ws.toISOString().slice(0, 10);
+    const label = ws.toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "short",
+    });
+    weeklyEarnings.push({
+      weekStart: key,
+      label,
+      amount: weeklyMap.get(key) ?? 0,
+    });
+  }
+
+  const todayEnd = new Date();
+  todayEnd.setHours(23, 59, 59, 999);
+  const startLast7 = new Date(todayEnd);
+  startLast7.setDate(startLast7.getDate() - 6);
+  startLast7.setHours(0, 0, 0, 0);
+  const startPrev7 = new Date(startLast7);
+  startPrev7.setDate(startPrev7.getDate() - 7);
+  const rangeStart = new Date(startPrev7);
+  const rangeStartIso = rangeStart.toISOString();
+  const todayEndIso = todayEnd.toISOString();
+
+  const dailyRows = await db
+    .select({
+      d: sql`date_trunc('day', ${paidTimestamp})::date`.as("d"),
+      total: sql`coalesce(sum(${payments.amount})::numeric, 0)`,
+    })
+    .from(payments)
+    .innerJoin(bookings, eq(payments.bookingId, bookings.id))
+    .where(
+      and(
+        eq(bookings.ownerId, ownerId),
+        eq(payments.status, "paid"),
+        gte(paidTimestamp, rangeStartIso),
+        lte(paidTimestamp, todayEndIso)
+      )
+    )
+    .groupBy(sql`date_trunc('day', ${paidTimestamp})::date`)
+    .orderBy(sql`date_trunc('day', ${paidTimestamp})::date`);
+
+  const dailyMap = new Map();
+  for (const r of dailyRows) {
+    const key =
+      r.d instanceof Date ? r.d.toISOString().slice(0, 10) : String(r.d).slice(0, 10);
+    dailyMap.set(key, Number(r.total));
+  }
+
+  const fmtKey = (d) => d.toISOString().slice(0, 10);
+  const dailyPrev7 = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(startPrev7);
+    d.setDate(d.getDate() + i);
+    dailyPrev7.push({
+      dayLabel: d.toLocaleDateString("en-US", { weekday: "short" }),
+      amount: dailyMap.get(fmtKey(d)) ?? 0,
+    });
+  }
+  const dailyLast7 = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(startLast7);
+    d.setDate(d.getDate() + i);
+    dailyLast7.push({
+      dayLabel: d.toLocaleDateString("en-US", { weekday: "short" }),
+      amount: dailyMap.get(fmtKey(d)) ?? 0,
+    });
+  }
+
+  const topRows = await db
+    .select({
+      vehicleId: vehicles.id,
+      brand: vehicles.brand,
+      model: vehicles.model,
+      total: sql`coalesce(sum(${payments.amount})::numeric, 0)`,
+    })
+    .from(payments)
+    .innerJoin(bookings, eq(payments.bookingId, bookings.id))
+    .innerJoin(vehicles, eq(bookings.vehicleId, vehicles.id))
+    .where(and(eq(bookings.ownerId, ownerId), eq(payments.status, "paid")))
+    .groupBy(vehicles.id, vehicles.brand, vehicles.model)
+    .orderBy(desc(sql`sum(${payments.amount})::numeric`))
+    .limit(4);
+
+  const topVehicles = topRows.map((r) => ({
+    vehicleId: r.vehicleId,
+    brand: r.brand,
+    model: r.model,
+    label: `${r.brand} ${r.model}`,
+    amount: Number(r.total ?? 0),
+  }));
+
+  const maxTop = topVehicles.reduce((m, v) => Math.max(m, v.amount), 0) || 1;
+
+  return {
+    currency: "NPR",
+    totalEarnings,
+    thisMonthEarnings,
+    lastMonthEarnings,
+    monthOverMonthChangePct,
+    pendingPaymentsTotal,
+    topVehicles,
+    topVehiclesMaxAmount: maxTop,
+  };
+};
+
 export {
   cancelBooking,
   createBookingWithPayment,
   getBookingById,
   getBookingsForUser,
+  getOwnerEarningsReport,
   getOwnerStats,
   hasOverlappingBooking,
 };

@@ -12,7 +12,6 @@ const Contact = () => {
     name: "",
     email: "",
     phone: "",
-    department: "",
     question: "",
   });
 
@@ -233,36 +232,6 @@ const Contact = () => {
                     className="w-full rounded-lg bg-gray-800 px-4 py-2.5 text-sm text-white placeholder-gray-400 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
                     placeholder="Enter your phone number"
                   />
-                </div>
-
-                {/* Department Field */}
-                <div>
-                  <label
-                    htmlFor="department"
-                    className="mb-1.5 block text-sm font-medium text-white"
-                  >
-                    Department
-                  </label>
-                  <select
-                    id="department"
-                    name="department"
-                    value={formData.department}
-                    onChange={handleChange}
-                    className="w-full rounded-lg bg-gray-800 px-4 py-2.5 text-sm text-white focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  >
-                    <option value="" className="bg-gray-800">
-                      Business Department
-                    </option>
-                    <option value="sales" className="bg-gray-800">
-                      Sales
-                    </option>
-                    <option value="support" className="bg-gray-800">
-                      Support
-                    </option>
-                    <option value="technical" className="bg-gray-800">
-                      Technical
-                    </option>
-                  </select>
                 </div>
 
                 {/* Question Field */}

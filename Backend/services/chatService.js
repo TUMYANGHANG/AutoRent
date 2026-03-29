@@ -3,12 +3,13 @@ import { db } from "../db/index.js";
 import {
   chatConversations,
   chatMessages,
+  userDetails,
   users,
 } from "../schema/index.js";
 
 /**
  * Get all owners (for renters to start a chat with).
- * Excludes excludeUserId (the caller) from the list.
+ * Includes profile picture and city from user_details (no email — use names + profile in UI).
  */
 const getOwnersForRenter = async (excludeUserId = null) => {
   const rows = await db
@@ -16,9 +17,11 @@ const getOwnersForRenter = async (excludeUserId = null) => {
       id: users.id,
       firstName: users.firstName,
       lastName: users.lastName,
-      email: users.email,
+      profilePicture: userDetails.profilePicture,
+      city: userDetails.city,
     })
     .from(users)
+    .leftJoin(userDetails, eq(users.id, userDetails.userId))
     .where(eq(users.role, "owner"))
     .orderBy(asc(users.firstName), asc(users.lastName));
 
@@ -28,7 +31,7 @@ const getOwnersForRenter = async (excludeUserId = null) => {
 
 /**
  * Get all renters (for owners to start a chat with).
- * Excludes excludeUserId (the caller) from the list.
+ * Includes profile picture and city from user_details (no email in list).
  */
 const getRentersForOwner = async (excludeUserId = null) => {
   const rows = await db
@@ -36,9 +39,11 @@ const getRentersForOwner = async (excludeUserId = null) => {
       id: users.id,
       firstName: users.firstName,
       lastName: users.lastName,
-      email: users.email,
+      profilePicture: userDetails.profilePicture,
+      city: userDetails.city,
     })
     .from(users)
+    .leftJoin(userDetails, eq(users.id, userDetails.userId))
     .where(eq(users.role, "renter"))
     .orderBy(asc(users.firstName), asc(users.lastName));
 
@@ -161,9 +166,12 @@ const getMessagesForConversation = async (conversationId, userId, limit = 50) =>
 /**
  * Create a new message in a conversation for a given sender.
  */
-const createMessageInConversation = async (conversationId, senderId, text) => {
-  if (!text || !String(text).trim()) {
-    const err = new Error("Message text is required");
+const createMessageInConversation = async (conversationId, senderId, text, attachmentUrl = null) => {
+  const hasText = text && String(text).trim();
+  const hasAttachment = attachmentUrl && String(attachmentUrl).trim();
+
+  if (!hasText && !hasAttachment) {
+    const err = new Error("Message text or attachment is required");
     err.code = "VALIDATION_ERROR";
     throw err;
   }
@@ -176,20 +184,25 @@ const createMessageInConversation = async (conversationId, senderId, text) => {
   }
 
   const now = new Date();
+  const messageText = hasText ? String(text) : null;
+
   const [msg] = await db
     .insert(chatMessages)
     .values({
       conversationId,
       senderId,
-      text: String(text),
+      text: messageText,
+      attachmentUrl: hasAttachment ? String(attachmentUrl) : null,
       createdAt: now,
     })
     .returning();
 
+  const previewText = messageText || "📷 Photo";
+
   await db
     .update(chatConversations)
     .set({
-      lastMessageText: String(text),
+      lastMessageText: previewText,
       lastMessageAt: now,
       updatedAt: now,
     })
@@ -237,8 +250,58 @@ const getConversationsForUser = async (userId) => {
   }));
 };
 
+/**
+ * Delete a message. Only the sender can delete their own message.
+ * Returns the deleted message's conversationId so the caller can broadcast.
+ */
+const deleteMessageById = async (messageId, userId) => {
+  const [msg] = await db
+    .select()
+    .from(chatMessages)
+    .where(eq(chatMessages.id, messageId))
+    .limit(1);
+
+  if (!msg) {
+    const err = new Error("Message not found");
+    err.code = "NOT_FOUND";
+    throw err;
+  }
+
+  if (msg.senderId !== userId) {
+    const err = new Error("You can only delete your own messages");
+    err.code = "FORBIDDEN";
+    throw err;
+  }
+
+  await db.delete(chatMessages).where(eq(chatMessages.id, messageId));
+
+  const conv = await getConversationForUser(msg.conversationId, userId);
+
+  if (conv && conv.lastMessageAt && msg.createdAt &&
+      new Date(conv.lastMessageAt).getTime() === new Date(msg.createdAt).getTime()) {
+    const [latest] = await db
+      .select()
+      .from(chatMessages)
+      .where(eq(chatMessages.conversationId, msg.conversationId))
+      .orderBy(desc(chatMessages.createdAt))
+      .limit(1);
+
+    await db
+      .update(chatConversations)
+      .set({
+        lastMessageText: latest?.text || latest?.attachmentUrl ? "📷 Photo" : null,
+        lastMessageAt: latest?.createdAt || null,
+        updatedAt: new Date(),
+      })
+      .where(eq(chatConversations.id, msg.conversationId));
+  }
+
+  return { conversationId: msg.conversationId, conversation: conv };
+};
+
 export {
   createMessageInConversation,
+  deleteMessageById,
   getConversationForUser,
   getConversationsForUser,
   getMessagesForConversation,

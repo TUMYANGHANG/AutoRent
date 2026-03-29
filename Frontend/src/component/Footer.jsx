@@ -336,11 +336,6 @@ const Footer = () => {
                 <span className="text-xs text-gray-500">Payment Methods:</span>
                 <div className="flex items-center gap-2">
                   <div className="group flex h-8 cursor-pointer items-center justify-center rounded bg-white px-3 py-1 transition-all duration-300 hover:scale-110 hover:shadow-lg">
-                    <span className="text-xs font-semibold text-gray-800 transition-colors duration-300 group-hover:text-orange-500">
-                      eSewa
-                    </span>
-                  </div>
-                  <div className="group flex h-8 cursor-pointer items-center justify-center rounded bg-white px-3 py-1 transition-all duration-300 hover:scale-110 hover:shadow-lg">
                     <svg
                       className="h-5 transition-all duration-300 group-hover:scale-110"
                       viewBox="0 0 468 222.5"

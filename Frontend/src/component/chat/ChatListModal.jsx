@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTimes, faUser } from "@fortawesome/free-solid-svg-icons";
+import { faTimes } from "@fortawesome/free-solid-svg-icons";
 import { chatAPI } from "../../utils/api.js";
 
 /**
@@ -35,7 +35,8 @@ const ChatListModal = ({ userRole, onSelect, onClose }) => {
 
   const label = userRole === "owner" ? "renters" : "owners";
   const displayName = (u) =>
-    [u.firstName, u.lastName].filter(Boolean).join(" ") || u.email || "User";
+    [u.firstName, u.lastName].filter(Boolean).join(" ").trim() ||
+    (userRole === "owner" ? "Renter" : "Owner");
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
@@ -72,17 +73,23 @@ const ChatListModal = ({ userRole, onSelect, onClose }) => {
                     onClick={() => onSelect(u)}
                     className="flex w-full cursor-pointer items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left transition hover:bg-white/10 hover:border-orange-500/50"
                   >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-500/20 text-orange-400">
-                      <FontAwesomeIcon icon={faUser} className="h-5 w-5" />
-                    </div>
+                    {u.profilePicture ? (
+                      <img
+                        src={u.profilePicture}
+                        alt=""
+                        className="h-10 w-10 shrink-0 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-500/20 text-sm font-semibold text-orange-300">
+                        {(displayName(u)[0] || "?").toUpperCase()}
+                      </div>
+                    )}
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-white truncate">
                         {displayName(u)}
                       </p>
-                      {u.email && (
-                        <p className="text-xs text-white/60 truncate">
-                          {u.email}
-                        </p>
+                      {u.city && (
+                        <p className="text-xs text-white/50 truncate">{u.city}</p>
                       )}
                     </div>
                   </button>

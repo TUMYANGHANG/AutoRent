@@ -54,32 +54,32 @@ const AdminNavbar = ({
 
   return (
     <header className="sticky top-0 z-50 w-full">
-      <div className="w-full border-b border-[#898989] bg-[#D9D9D9] shadow-sm">
+      <div className="w-full border-b border-white/10 bg-[#081C1C] shadow-md">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <div className="relative flex h-20 items-center justify-between gap-4">
             <Link
               to="/dashboard"
-              className="group flex shrink-0 cursor-pointer items-center gap-3 rounded-xl transition-all duration-300 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF4D4D] focus-visible:ring-offset-2 focus-visible:ring-offset-[#D9D9D9]"
+              className="group flex shrink-0 cursor-pointer items-center gap-3 rounded-xl transition-all duration-300 hover:scale-[1.02] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4FD1C5] focus-visible:ring-offset-2 focus-visible:ring-offset-[#081C1C]"
             >
               <div className="transition-transform duration-300 group-hover:scale-110">
                 <PlaceholderLogo />
               </div>
               <div className="leading-none">
-                <div className="text-xs font-semibold tracking-[0.25em] text-[#FF4D4D] transition-colors duration-300 group-hover:text-[#FF4D4D]">
+                <div className="text-xs font-semibold tracking-[0.25em] text-[#7DD3D3] transition-colors duration-300">
                   AUTO
                 </div>
-                <div className="text-2xl font-extrabold tracking-tight text-[#898989] transition-colors duration-300 group-hover:text-black">
+                <div className="text-2xl font-extrabold tracking-tight text-[#E8F4F4] transition-colors duration-300 group-hover:text-white">
                   RENT
                 </div>
               </div>
             </Link>
 
-            <h1 className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-lg font-semibold text-[#898989] sm:text-xl">
+            <h1 className="pointer-events-none absolute left-1/2 top-1/2 max-w-[42%] -translate-x-1/2 -translate-y-1/2 truncate text-center text-base font-semibold text-[#E8F4F4] sm:max-w-[50%] sm:text-xl">
               {pageTitle || "Dashboard"}
             </h1>
 
             <div className="ml-auto flex shrink-0 items-center gap-3">
-              <span className="hidden text-sm font-medium text-[#555555] sm:inline-block">
+              <span className="hidden text-sm font-medium text-[#B8D4D4] sm:inline-block">
                 {displayName}
               </span>
               <div
@@ -90,7 +90,7 @@ const AdminNavbar = ({
                 <button
                   type="button"
                   onClick={() => setProfileOpen((v) => !v)}
-                  className="relative flex h-12 w-12 cursor-pointer items-center justify-center rounded-full bg-[#D9D9D9] text-[#555555] ring-1 ring-[#898989] transition-all duration-300 hover:bg-[#898989] hover:text-white hover:ring-[#898989]"
+                  className="relative flex h-12 w-12 cursor-pointer items-center justify-center rounded-full bg-[#1A3232] text-[#E8F4F4] ring-1 ring-white/20 transition-all duration-300 hover:bg-[#243838] hover:ring-white/30"
                   aria-label="Profile"
                   aria-expanded={profileOpen}
                 >
@@ -109,7 +109,7 @@ const AdminNavbar = ({
                 </button>
 
                 <div
-                  className={`absolute right-0 top-full mt-1 w-48 rounded-2xl border border-[#898989] bg-[#D9D9D9] p-2 shadow-lg transition z-50 ${
+                  className={`absolute right-0 top-full mt-1 w-48 rounded-2xl border border-white/15 bg-[#0d2a2a] p-2 shadow-xl transition z-50 ${
                     profileOpen
                       ? "visible translate-y-0 opacity-100"
                       : "invisible translate-y-1 opacity-0"
@@ -118,7 +118,7 @@ const AdminNavbar = ({
                   <Link
                     to="/dashboard"
                     onClick={() => setProfileOpen(false)}
-                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[#555555] transition hover:bg-[#898989] hover:text-white"
+                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[#E8F4F4] transition hover:bg-white/10"
                   >
                     <FontAwesomeIcon icon={faGauge} className="h-4 w-4" />
                     Dashboard
@@ -129,7 +129,7 @@ const AdminNavbar = ({
                       setProfileOpen(false);
                       if (onLogout) onLogout();
                     }}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[#555555] transition hover:bg-[#898989] hover:text-white"
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[#F0A8A8] transition hover:bg-white/10"
                   >
                     <FontAwesomeIcon
                       icon={faRightFromBracket}
@@ -144,50 +144,50 @@ const AdminNavbar = ({
                 <button
                   type="button"
                   onClick={() => setNotificationsOpen((v) => !v)}
-                  className="relative flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-[#D9D9D9] text-[#555555] ring-1 ring-[#898989] transition-all duration-300 hover:bg-[#898989] hover:text-white hover:ring-[#898989]"
+                  className="relative flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-[#1A3232] text-[#E8F4F4] ring-1 ring-white/20 transition-all duration-300 hover:bg-[#243838] hover:ring-white/30"
                   aria-label="Notifications"
                   aria-expanded={notificationsOpen}
                 >
                   <FontAwesomeIcon icon={faBell} className="h-5 w-5" />
                   {unreadCount > 0 && (
-                    <span className="absolute -right-1 -top-1 inline-flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#FF4D4D] px-1.5 text-[10px] font-semibold text-white">
+                    <span className="absolute -right-1 -top-1 inline-flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#E85D5D] px-1.5 text-[10px] font-semibold text-white">
                       {unreadCount > 99 ? "99+" : unreadCount}
                     </span>
                   )}
                 </button>
 
                 <div
-                  className={`absolute right-0 top-full mt-1 w-80 max-w-xs rounded-2xl border border-[#898989] bg-[#D9D9D9] p-2 shadow-xl transition z-50 ${
+                  className={`absolute right-0 top-full mt-1 w-80 max-w-xs rounded-2xl border border-white/15 bg-[#0d2a2a] p-2 shadow-xl transition z-50 ${
                     notificationsOpen
                       ? "visible translate-y-0 opacity-100"
                       : "invisible translate-y-1 opacity-0"
                   }`}
                 >
                   <div className="mb-1 flex items-center justify-between px-1 pt-1">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-[#555555]">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[#B8D4D4]">
                       Notifications
                     </p>
                     {unreadCount > 0 && onMarkAllNotificationsRead && (
                       <button
                         type="button"
                         onClick={onMarkAllNotificationsRead}
-                        className="text-[11px] font-medium text-[#FF4D4D] hover:text-[#e63f3f]"
+                        className="text-[11px] font-medium text-[#7DD3D3] hover:text-[#9AE6E6]"
                       >
                         Mark all as read
                       </button>
                     )}
                   </div>
-                  <div className="max-h-80 overflow-y-auto rounded-xl bg-[#D9D9D9]">
+                  <div className="max-h-80 overflow-y-auto rounded-xl bg-[#081C1C]/80">
                     {notificationsLoading ? (
-                      <div className="px-4 py-6 text-center text-xs text-[#555555]">
+                      <div className="px-4 py-6 text-center text-xs text-[#B8D4D4]">
                         Loading notifications...
                       </div>
                     ) : notifications.length === 0 ? (
-                      <div className="px-4 py-6 text-center text-xs text-[#555555]">
+                      <div className="px-4 py-6 text-center text-xs text-[#B8D4D4]">
                         No notifications yet.
                       </div>
                     ) : (
-                      <ul className="divide-y divide-[#898989]">
+                      <ul className="divide-y divide-white/10">
                         {notifications.map((n) => {
                           const formatDate = (d) => {
                             if (!d) return "—";
@@ -202,25 +202,25 @@ const AdminNavbar = ({
                             <li
                               key={n.id}
                               className={`flex gap-3 px-3 py-2.5 ${
-                                !n.isRead ? "bg-[#FF4D4D]/10" : "bg-transparent"
+                                !n.isRead ? "bg-[#1A3232]/80" : "bg-transparent"
                               }`}
                             >
-                              <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4DFFBC]">
+                              <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#1A3232] ring-1 ring-white/10">
                                 <FontAwesomeIcon
                                   icon={faBell}
-                                  className="h-4 w-4 text-[#898989]"
+                                  className="h-4 w-4 text-[#7DD3D3]"
                                 />
                               </div>
                               <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-medium text-black">
+                                <p className="truncate text-sm font-medium text-[#F0FAFA]">
                                   {n.title}
                                 </p>
                                 {n.message && (
-                                  <p className="mt-0.5 line-clamp-2 text-xs text-[#555555]">
+                                  <p className="mt-0.5 line-clamp-2 text-xs text-[#B8D4D4]">
                                     {n.message}
                                   </p>
                                 )}
-                                <p className="mt-1 text-[11px] text-[#555555]">
+                                <p className="mt-1 text-[11px] text-[#8FA9A9]">
                                   {formatDate(n.createdAt)}
                                 </p>
                               </div>
@@ -228,7 +228,7 @@ const AdminNavbar = ({
                                 <button
                                   type="button"
                                   onClick={() => onMarkNotificationRead(n.id)}
-                                  className="self-center rounded-lg border border-[#898989] bg-[#D9D9D9] px-2 py-1 text-[11px] font-medium text-[#555555] hover:bg-[#898989] hover:text-white"
+                                  className="self-center rounded-lg border border-white/20 bg-[#1A3232] px-2 py-1 text-[11px] font-medium text-[#E8F4F4] hover:bg-white/10"
                                 >
                                   Mark
                                 </button>

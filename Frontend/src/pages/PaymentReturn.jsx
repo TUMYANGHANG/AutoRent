@@ -2,44 +2,84 @@ import { faCheckCircle, faExclamationTriangle, faSpinner } from "@fortawesome/fr
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { khaltiAPI } from "../utils/api.js";
+import { khaltiAPI, stripeAPI } from "../utils/api.js";
 
 const PaymentReturn = () => {
   const [searchParams] = useSearchParams();
-  const [status, setStatus] = useState("loading"); // loading | success | failed
+  const [status, setStatus] = useState("loading");
   const [message, setMessage] = useState("");
   const [details, setDetails] = useState(null);
+  const [provider, setProvider] = useState(null);
 
   useEffect(() => {
+    const sessionId = searchParams.get("session_id");
     const pidx = searchParams.get("pidx");
     const purchaseOrderId = searchParams.get("purchase_order_id");
+    const urlProvider = searchParams.get("provider");
     const urlStatus = searchParams.get("status");
 
-    if (!pidx || !purchaseOrderId) {
-      setStatus("failed");
-      setMessage("Invalid return URL: missing payment parameters");
-      return;
-    }
+    const isStripe = urlProvider === "stripe" || !!sessionId;
 
-    const verify = async () => {
-      try {
-        const res = await khaltiAPI.verify(pidx, purchaseOrderId);
-        if (res?.success) {
-          setStatus("success");
-          setMessage(res.message || "Payment verified successfully");
-          setDetails(res.data);
-        } else {
-          setStatus("failed");
-          setMessage(res?.message || urlStatus || "Payment could not be verified");
-        }
-      } catch (err) {
+    if (isStripe) {
+      setProvider("stripe");
+
+      if (!sessionId || !purchaseOrderId) {
         setStatus("failed");
-        setMessage(err?.message || "Verification failed. Please check your dashboard.");
+        setMessage("Invalid return URL: missing Stripe payment parameters");
+        return;
       }
-    };
 
-    verify();
+      if (urlStatus === "cancelled") {
+        setStatus("failed");
+        setMessage("Payment was cancelled");
+        return;
+      }
+
+      (async () => {
+        try {
+          const res = await stripeAPI.verify(sessionId, purchaseOrderId);
+          if (res?.success) {
+            setStatus("success");
+            setMessage(res.message || "Payment verified successfully");
+            setDetails(res.data);
+          } else {
+            setStatus("failed");
+            setMessage(res?.message || "Payment could not be verified");
+          }
+        } catch (err) {
+          setStatus("failed");
+          setMessage(err?.message || "Verification failed. Please check your dashboard.");
+        }
+      })();
+    } else {
+      setProvider("khalti");
+
+      if (!pidx || !purchaseOrderId) {
+        setStatus("failed");
+        setMessage("Invalid return URL: missing payment parameters");
+        return;
+      }
+
+      (async () => {
+        try {
+          const res = await khaltiAPI.verify(pidx, purchaseOrderId);
+          if (res?.success) {
+            setStatus("success");
+            setMessage(res.message || "Payment verified successfully");
+            setDetails(res.data);
+          } else {
+            setStatus("failed");
+            setMessage(res?.message || urlStatus || "Payment could not be verified");
+          }
+        } catch (err) {
+          setStatus("failed");
+          setMessage(err?.message || "Verification failed. Please check your dashboard.");
+        }
+      })();
+    }
   }, [searchParams]);
+
+  const currencyLabel = provider === "stripe" ? "$" : "Rs.";
 
   return (
     <main className="min-h-screen bg-[#05070b]">
@@ -50,7 +90,9 @@ const PaymentReturn = () => {
               <FontAwesomeIcon icon={faSpinner} className="h-16 w-16 text-orange-500 animate-spin" />
             </div>
             <h1 className="mt-6 text-2xl font-bold text-white">Verifying payment…</h1>
-            <p className="mt-3 text-white/70">Please wait while we confirm your payment with Khalti.</p>
+            <p className="mt-3 text-white/70">
+              Please wait while we confirm your payment{provider ? ` with ${provider === "stripe" ? "Stripe" : "Khalti"}` : ""}.
+            </p>
           </div>
         )}
 
@@ -62,7 +104,9 @@ const PaymentReturn = () => {
             <h1 className="mt-6 text-2xl font-bold text-white">Payment successful</h1>
             <p className="mt-3 text-white/80">{message}</p>
             {details?.amount != null && (
-              <p className="mt-2 text-lg font-semibold text-emerald-400">Rs. {Number(details.amount).toLocaleString()}</p>
+              <p className="mt-2 text-lg font-semibold text-emerald-400">
+                {currencyLabel} {Number(details.amount).toLocaleString()}
+              </p>
             )}
             <div className="mt-8 flex flex-wrap justify-center gap-4">
               <Link

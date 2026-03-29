@@ -27,7 +27,7 @@ const navItems = [
 const SIDEBAR_WIDTH = 288; // 18rem
 const TRIGGER_WIDTH = 32;
 
-const OwnerSidebar = ({ activeKey = "dashboard", onSelect, onLogout }) => {
+const OwnerSidebar = ({ activeKey = "dashboard", onSelect, onLogout, onExpandChange }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [desktopExpanded, setDesktopExpanded] = useState(false);
   const listRef = useRef(null);
@@ -65,6 +65,7 @@ const OwnerSidebar = ({ activeKey = "dashboard", onSelect, onLogout }) => {
         ease: "power2.out",
       });
       requestAnimationFrame(() => animateNavItems());
+      onExpandChange?.(true);
     }
   };
 
@@ -81,6 +82,7 @@ const OwnerSidebar = ({ activeKey = "dashboard", onSelect, onLogout }) => {
         duration: 0.22,
         ease: "power2.in",
       });
+      onExpandChange?.(false);
     }
   };
 

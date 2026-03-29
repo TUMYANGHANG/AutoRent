@@ -6,6 +6,7 @@ import {
   createBookingWithPayment,
   getBookingById,
   getBookingsForUser,
+  getOwnerEarningsReport,
   getOwnerStats,
 } from "../services/bookingService.js";
 
@@ -171,6 +172,33 @@ const getOwnerStatsController = async (req, res) => {
 };
 
 /**
+ * GET /bookings/stats/earnings - Owner earnings dashboard (charts, monthly, top vehicles).
+ */
+const getOwnerEarningsReportController = async (req, res) => {
+  try {
+    const { role, userId } = req.user;
+    if (role !== "owner") {
+      return res.status(403).json({
+        success: false,
+        message: "Only vehicle owners can view earnings",
+      });
+    }
+    const data = await getOwnerEarningsReport(userId);
+    res.status(200).json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    console.error("Get owner earnings error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
+
+/**
  * GET /bookings - Get bookings for current user (renter or owner).
  */
 const getBookingsController = async (req, res) => {
@@ -234,5 +262,6 @@ export {
   ensureVerifiedRenter,
   getBookingByIdController,
   getBookingsController,
+  getOwnerEarningsReportController,
   getOwnerStatsController,
 };

@@ -4,6 +4,7 @@ import { users } from "./user.js";
 import { bookings } from "./booking.js";
 import { bookingRequests } from "./bookingRequest.js";
 
+
 // Conversation between a renter and an owner (general chat, not tied to a specific booking)
 const chatConversations = pgTable("chat_conversations", {
   id: varchar("id", { length: 255 })
@@ -39,7 +40,8 @@ const chatMessages = pgTable("chat_messages", {
   senderId: varchar("sender_id", { length: 255 })
     .notNull()
     .references(() => users.id, { onDelete: "CASCADE" }),
-  text: text("text").notNull(),
+  text: text("text"),
+  attachmentUrl: varchar("attachment_url", { length: 1024 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

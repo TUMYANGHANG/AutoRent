@@ -10,8 +10,7 @@ import {
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { gsap } from "gsap";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 const navItems = [
   { key: "dashboard", label: "Dashboard", icon: faGauge },
@@ -22,145 +21,106 @@ const navItems = [
   { key: "profile", label: "Profile", icon: faUser },
 ];
 
-const SIDEBAR_WIDTH = 288;
-const TRIGGER_WIDTH = 32;
+/** Collapsed rail width (icons only) — keep in sync with AdminDashboard main margin */
+export const ADMIN_SIDEBAR_COLLAPSED_PX = 72;
+/** Expanded width on hover */
+export const ADMIN_SIDEBAR_EXPANDED_PX = 288;
 
-const AdminSidebar = ({ activeKey = "dashboard", onSelect, onLogout }) => {
+const navBtnClass = (isActive) =>
+  `flex w-full items-center gap-3 rounded-xl py-3 pl-2 pr-3 text-left transition-colors duration-200 ${
+    isActive
+      ? "bg-[#1A3232] text-[#F0FAFA] shadow-inner"
+      : "text-[#B8D4D4] hover:bg-white/5 hover:text-white"
+  }`;
+
+const labelClass = (showLabelsAlways) =>
+  showLabelsAlways
+    ? "min-w-0 flex-1 truncate text-sm font-medium text-inherit"
+    : "min-w-0 flex-1 truncate text-sm font-medium text-inherit max-w-0 opacity-0 transition-all duration-300 group-hover:max-w-[220px] group-hover:opacity-100";
+
+const AdminSidebar = ({
+  activeKey = "dashboard",
+  onSelect,
+  onLogout,
+  onExpandChange,
+}) => {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const listRef = useRef(null);
-  const asideRef = useRef(null);
-  const wrapperRef = useRef(null);
-
-  const animateNavItems = () => {
-    if (!listRef.current) return;
-    const items = listRef.current.querySelectorAll("[data-nav-item]");
-    if (!items.length) return;
-    gsap.fromTo(
-      items,
-      { opacity: 0, x: -16 },
-      {
-        opacity: 1,
-        x: 0,
-        duration: 0.28,
-        stagger: 0.04,
-        ease: "power2.out",
-      },
-    );
-  };
-
-  const handleDesktopEnter = () => {
-    if (asideRef.current && wrapperRef.current) {
-      gsap.to(asideRef.current, {
-        x: 0,
-        duration: 0.28,
-        ease: "power2.out",
-      });
-      gsap.to(wrapperRef.current, {
-        width: SIDEBAR_WIDTH,
-        duration: 0.28,
-        ease: "power2.out",
-      });
-      requestAnimationFrame(() => animateNavItems());
-    }
-  };
-
-  const handleDesktopLeave = () => {
-    if (asideRef.current && wrapperRef.current) {
-      gsap.to(asideRef.current, {
-        x: -SIDEBAR_WIDTH,
-        duration: 0.22,
-        ease: "power2.in",
-      });
-      gsap.to(wrapperRef.current, {
-        width: TRIGGER_WIDTH,
-        duration: 0.22,
-        ease: "power2.in",
-      });
-    }
-  };
 
   useEffect(() => {
-    if (typeof window !== "undefined" && window.innerWidth < 1024 && mobileOpen) {
-      animateNavItems();
-    }
-  }, [mobileOpen]);
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const sync = () => {
+      if (!mq.matches) onExpandChange?.(false);
+    };
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, [onExpandChange]);
 
-  const renderSidebarContent = (navRef = null) => (
-    <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between border-b border-[#898989] px-5 py-4 lg:justify-end lg:border-b-0">
+  const renderSidebarContent = (showLabelsAlways) => (
+    <div className="flex h-full flex-col bg-[#081C1C]">
+      <div className="flex items-center justify-between border-b border-white/10 px-4 py-4 lg:justify-end lg:border-b-0 lg:py-3">
         <button
           type="button"
           onClick={() => setMobileOpen(false)}
-          className="flex h-11 w-11 items-center justify-center rounded-lg text-[#555555] transition hover:bg-[#898989] hover:text-white lg:hidden"
+          className="flex h-10 w-10 items-center justify-center rounded-lg text-[#B8D4D4] transition hover:bg-white/10 hover:text-white lg:hidden"
           aria-label="Close menu"
         >
-          <FontAwesomeIcon icon={faXmark} className="h-6 w-6" />
+          <FontAwesomeIcon icon={faXmark} className="h-5 w-5" />
         </button>
       </div>
-      <nav ref={navRef} className="flex-1 space-y-3 overflow-y-auto px-5 py-5">
+      <nav className="flex-1 space-y-1 overflow-y-auto px-2 py-2 lg:px-2 lg:py-3">
         {navItems.map((item) => {
           const isActive = activeKey === item.key;
           return (
             <button
               key={item.key}
               type="button"
-              data-nav-item
               onClick={() => {
                 onSelect?.(item.key);
                 setMobileOpen(false);
               }}
-              className={`flex w-full items-center gap-4 rounded-xl px-4 py-3.5 text-left text-base font-medium transition ${
-                isActive
-                  ? "bg-[#FF4D4D]/10 text-[#FF4D4D] ring-1 ring-[#FF4D4D]/40"
-                  : "text-[#555555] hover:bg-[#898989] hover:text-white"
-              }`}
+              className={navBtnClass(isActive)}
             >
-              <FontAwesomeIcon icon={item.icon} className="h-6 w-6 shrink-0" />
-              <span className="flex-1">{item.label}</span>
+              <span className="flex w-10 shrink-0 justify-center">
+                <FontAwesomeIcon
+                  icon={item.icon}
+                  className="h-5 w-5 shrink-0 opacity-90"
+                />
+              </span>
+              <span className={labelClass(showLabelsAlways)}>{item.label}</span>
             </button>
           );
         })}
       </nav>
       {onLogout && (
-        <div className="border-t border-[#898989] px-5 py-5">
+        <div className="border-t border-white/10 px-2 py-3">
           <button
             type="button"
             onClick={() => {
               onLogout();
               setMobileOpen(false);
             }}
-            className="flex w-full cursor-pointer items-center gap-4 rounded-xl px-4 py-3.5 text-left text-base font-medium text-[#FF4D4D] transition hover:bg-[#FF4D4D]/10 hover:text-[#FF4D4D]"
+            className="flex w-full items-center gap-3 rounded-xl py-3 pl-2 pr-3 text-left text-[#F0A8A8] transition hover:bg-white/5"
           >
-            <FontAwesomeIcon
-              icon={faRightFromBracket}
-              className="h-6 w-6 shrink-0"
-            />
-            <span>Logout</span>
+            <span className="flex w-10 shrink-0 justify-center">
+              <FontAwesomeIcon
+                icon={faRightFromBracket}
+                className="h-5 w-5 shrink-0"
+              />
+            </span>
+            <span className={labelClass(showLabelsAlways)}>Logout</span>
           </button>
         </div>
       )}
     </div>
   );
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const applyDesktopInitial = () => {
-      if (window.innerWidth >= 1024 && asideRef.current && wrapperRef.current) {
-        gsap.set(asideRef.current, { x: -SIDEBAR_WIDTH });
-        gsap.set(wrapperRef.current, { width: TRIGGER_WIDTH });
-      }
-    };
-    applyDesktopInitial();
-    window.addEventListener("resize", applyDesktopInitial);
-    return () => window.removeEventListener("resize", applyDesktopInitial);
-  }, []);
-
   return (
     <>
       <button
         type="button"
         onClick={() => setMobileOpen(true)}
-        className="fixed left-4 top-24 z-40 flex h-11 w-11 items-center justify-center rounded-xl border border-[#898989] bg-[#D9D9D9] text-[#555555] shadow-md transition hover:bg-[#898989] hover:text-white lg:hidden"
+        className="fixed left-4 top-24 z-40 flex h-11 w-11 items-center justify-center rounded-xl border border-white/15 bg-[#081C1C] text-[#E8F4F4] shadow-lg transition hover:bg-[#1A3232] lg:hidden"
         aria-label="Open menu"
       >
         <FontAwesomeIcon icon={faBars} className="h-5 w-5" />
@@ -170,35 +130,28 @@ const AdminSidebar = ({ activeKey = "dashboard", onSelect, onLogout }) => {
         <button
           type="button"
           aria-label="Close menu"
-          className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
 
-      <div className="w-0 shrink-0">
-        <div
-          ref={wrapperRef}
-          className="fixed left-0 top-20 z-50 hidden h-[calc(100vh-5rem)] overflow-visible lg:block"
-          style={{ width: TRIGGER_WIDTH }}
-          onMouseEnter={handleDesktopEnter}
-          onMouseLeave={handleDesktopLeave}
-        >
-          <aside
-            ref={asideRef}
-            className="absolute left-0 top-0 h-full w-72 border-r border-[#898989] bg-[#D9D9D9] shadow-lg"
-          >
-            {renderSidebarContent(listRef)}
-          </aside>
-        </div>
+      {/* Desktop: icon rail → expands on hover (group) */}
+      <aside
+        className="group fixed left-0 top-20 z-50 hidden h-[calc(100vh-5rem)] w-[72px] flex-col overflow-hidden border-r border-white/10 bg-[#081C1C] shadow-2xl transition-[width] duration-300 ease-out hover:w-72 lg:flex"
+        onMouseEnter={() => onExpandChange?.(true)}
+        onMouseLeave={() => onExpandChange?.(false)}
+      >
+        {renderSidebarContent(false)}
+      </aside>
 
-        <aside
-          className={`fixed left-0 top-20 z-50 h-[calc(100vh-5rem)] w-72 border-r border-[#898989] bg-[#D9D9D9] shadow-lg transition-transform duration-300 lg:hidden ${
-            mobileOpen ? "translate-x-0" : "-translate-x-full"
-          }`}
-        >
-          {renderSidebarContent()}
-        </aside>
-      </div>
+      {/* Mobile drawer — labels always visible */}
+      <aside
+        className={`fixed left-0 top-20 z-50 h-[calc(100vh-5rem)] w-[min(100vw,288px)] max-w-[288px] border-r border-white/10 bg-[#081C1C] shadow-2xl transition-transform duration-300 ease-out lg:hidden ${
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        {renderSidebarContent(true)}
+      </aside>
     </>
   );
 };

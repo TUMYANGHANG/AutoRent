@@ -1,5 +1,6 @@
 import {
   createMessageInConversation,
+  deleteMessageById,
   getConversationsForUser,
   getMessagesForConversation,
   getOrCreateConversationByPair,
@@ -145,9 +146,9 @@ const postMessageController = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.userId;
-    const { text } = req.body || {};
+    const { text, attachmentUrl } = req.body || {};
 
-    const result = await createMessageInConversation(id, userId, text);
+    const result = await createMessageInConversation(id, userId, text, attachmentUrl);
     res.status(201).json({
       success: true,
       data: result.message,
@@ -168,8 +169,36 @@ const postMessageController = async (req, res) => {
   }
 };
 
+/**
+ * DELETE /chat/messages/:messageId
+ * Delete a message (only the sender can delete their own).
+ */
+const deleteMessageController = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const userId = req.user.userId;
+
+    await deleteMessageById(messageId, userId);
+    res.status(200).json({ success: true, message: "Message deleted" });
+  } catch (error) {
+    if (error.code === "NOT_FOUND") {
+      return res.status(404).json({ success: false, message: error.message });
+    }
+    if (error.code === "FORBIDDEN") {
+      return res.status(403).json({ success: false, message: error.message });
+    }
+    console.error("Delete message error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
+
 export {
   createConversationController,
+  deleteMessageController,
   getMessagesController,
   getMyConversationsController,
   getOwnersController,

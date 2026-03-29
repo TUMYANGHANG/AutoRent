@@ -338,6 +338,12 @@ export const bookingsAPI = {
     return res?.data ?? { activeRentals: 0, totalEarnings: 0 };
   },
 
+  /** Owner-only: earnings report (charts, monthly, top vehicles). */
+  getOwnerEarningsReport: async () => {
+    const res = await apiRequest("/bookings/stats/earnings", { method: "GET" });
+    return res?.data ?? null;
+  },
+
   cancel: async (bookingId) => {
     return apiRequest(`/bookings/${bookingId}/cancel`, {
       method: "PATCH",
@@ -369,6 +375,28 @@ export const khaltiAPI = {
       body: JSON.stringify({ pidx, purchaseOrderId }),
     });
     return res;
+  },
+};
+
+// Stripe payment API
+export const stripeAPI = {
+  initiate: async (bookingId) => {
+    const returnUrl = `${window.location.origin}/payment/return`;
+    return apiRequest("/payments/stripe/initiate", {
+      method: "POST",
+      body: JSON.stringify({
+        bookingId,
+        successUrl: returnUrl,
+        cancelUrl: returnUrl,
+      }),
+    });
+  },
+
+  verify: async (sessionId, purchaseOrderId) => {
+    return apiRequest("/payments/stripe/verify", {
+      method: "POST",
+      body: JSON.stringify({ sessionId, purchaseOrderId }),
+    });
   },
 };
 
@@ -457,12 +485,27 @@ export const chatAPI = {
   },
 
   /** Send message over HTTP (fallback / testing without sockets) */
-  sendMessageHttp: async (conversationId, text) => {
+  sendMessageHttp: async (conversationId, text, attachmentUrl = null) => {
     const res = await apiRequest(`/chat/conversations/${conversationId}/messages`, {
       method: "POST",
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text, attachmentUrl }),
     });
     return res?.data ?? null;
+  },
+
+  /** Upload a single image for chat attachment. Returns the Cloudinary URL. */
+  uploadImage: async (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const token = localStorage.getItem("token");
+    const res = await fetch(`${API_BASE_URL}/upload/image`, {
+      method: "POST",
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: formData,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.message || "Upload failed");
+    return data?.data?.url ?? data?.url ?? null;
   },
 };
 
@@ -511,6 +554,10 @@ export const adminAPI = {
 
   deleteUser: async (userId) => {
     return apiRequest(`/admin/users/${userId}`, { method: "DELETE" });
+  },
+
+  getReportStats: async () => {
+    return apiRequest("/admin/reports", { method: "GET" });
   },
 };
 

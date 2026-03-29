@@ -8,6 +8,7 @@ import {
   NOTIFICATION_TYPES,
 } from "../services/notificationService.js";
 import {
+  getAdminReportStats,
   getAdminStats,
   getAllVehicles,
   getVehicleById,
@@ -181,7 +182,25 @@ const updateVehicleVerifyController = async (req, res) => {
   }
 };
 
+const getAdminReportStatsController = async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ success: false, message: "Admin only" });
+    }
+    const data = await getAdminReportStats();
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    console.error("[Admin] Report stats error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
+
 export {
+  getAdminReportStatsController,
   getAdminStatsController,
   getAllVehiclesController,
   getVehicleByIdAdminController,

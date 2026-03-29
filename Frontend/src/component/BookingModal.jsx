@@ -408,7 +408,8 @@ const BookingModal = ({ vehicle, isOpen, onClose }) => {
                   </h3>
                   <p className="text-xs text-white/70">
                     The owner will review your request. After approval, you can
-                    pay online with Khalti or pay when you pick up the vehicle.
+                    pay online with Stripe or Khalti, or pay when you pick up the
+                    vehicle.
                   </p>
                   <div className="grid gap-1.5 sm:grid-cols-3">
                     <div className="flex items-center gap-2 rounded-lg border-2 border-orange-500 bg-orange-500/10 px-2.5 py-1.5">
@@ -418,11 +419,11 @@ const BookingModal = ({ vehicle, isOpen, onClose }) => {
                         <p className="text-[10px] text-white/60">Default</p>
                       </div>
                     </div>
-                    <div className="flex cursor-not-allowed items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 opacity-60" title="Coming soon">
-                      <FontAwesomeIcon icon={faCreditCard} className="h-5 w-5 text-white/40" />
+                    <div className="flex items-center gap-2 rounded-lg border border-[#635BFF]/50 bg-[#635BFF]/10 px-2.5 py-1.5">
+                      <FontAwesomeIcon icon={faCreditCard} className="h-5 w-5 text-[#A78BFA]" />
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-white/70">Stripe</p>
-                        <p className="text-[10px] text-white/50">Coming soon</p>
+                        <p className="text-sm font-semibold text-white">Stripe</p>
+                        <p className="text-[10px] text-white/60">After approval</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 rounded-lg border border-[#5C2D91]/40 bg-[#5C2D91]/5 px-2.5 py-1.5">

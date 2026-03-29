@@ -1,4 +1,4 @@
-import { and, eq, inArray, count, isNotNull, or } from "drizzle-orm";
+import { and, eq, inArray, count, isNotNull, ne, or, gte, sql } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { bookings, userDetails, users, vehicleImages, vehicles } from "../schema/index.js";
 import { getRatingStats, getRatingStatsForVehicles } from "./vehicleReviewService.js";
@@ -482,7 +482,10 @@ const deleteVehicle = async (vehicleId, ownerId) => {
 const getAdminStats = async () => {
   const [vehiclesRow] = await db.select({ totalVehicles: count() }).from(vehicles);
 
-  const [usersRow] = await db.select({ totalUsers: count() }).from(users);
+  const [usersRow] = await db
+    .select({ totalUsers: count() })
+    .from(users)
+    .where(ne(users.role, "admin"));
 
   const [activeRow] = await db
     .select({ count: count() })
@@ -520,10 +523,84 @@ const getAdminStats = async () => {
   };
 };
 
+const getAdminReportStats = async () => {
+  const renterCountRow = await db
+    .select({ count: count() })
+    .from(users)
+    .where(eq(users.role, "renter"));
+  const ownerCountRow = await db
+    .select({ count: count() })
+    .from(users)
+    .where(eq(users.role, "owner"));
+
+  const totalRenters = Number(renterCountRow[0]?.count ?? 0);
+  const totalOwners = Number(ownerCountRow[0]?.count ?? 0);
+
+  const [vehiclesRow] = await db.select({ total: count() }).from(vehicles);
+  const totalVehicles = Number(vehiclesRow?.total ?? 0);
+
+  const vehicleTypeRows = await db
+    .select({
+      type: vehicles.vehicleType,
+      count: count(),
+    })
+    .from(vehicles)
+    .groupBy(vehicles.vehicleType);
+
+  const vehiclesByType = vehicleTypeRows.map((r) => ({
+    type: r.type || "Unknown",
+    count: Number(r.count),
+  }));
+
+  const WEEKS = 8;
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const startOfCurrentWeek = new Date(now);
+  startOfCurrentWeek.setDate(now.getDate() - diffToMonday);
+  startOfCurrentWeek.setHours(0, 0, 0, 0);
+
+  const eightWeeksAgo = new Date(startOfCurrentWeek);
+  eightWeeksAgo.setDate(eightWeeksAgo.getDate() - (WEEKS - 1) * 7);
+
+  const weeklyRows = await db
+    .select({
+      weekStart: sql`date_trunc('week', ${bookings.createdAt})::date`.as("week_start"),
+      count: count(),
+    })
+    .from(bookings)
+    .where(gte(bookings.createdAt, eightWeeksAgo))
+    .groupBy(sql`date_trunc('week', ${bookings.createdAt})::date`)
+    .orderBy(sql`date_trunc('week', ${bookings.createdAt})::date`);
+
+  const weeklyMap = new Map();
+  for (const r of weeklyRows) {
+    weeklyMap.set(String(r.weekStart), Number(r.count));
+  }
+
+  const weeklyRentals = [];
+  for (let i = 0; i < WEEKS; i++) {
+    const ws = new Date(eightWeeksAgo);
+    ws.setDate(ws.getDate() + i * 7);
+    const key = ws.toISOString().slice(0, 10);
+    const label = ws.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    weeklyRentals.push({ week: key, label, count: weeklyMap.get(key) ?? 0 });
+  }
+
+  return {
+    totalRenters,
+    totalOwners,
+    totalVehicles,
+    vehiclesByType,
+    weeklyRentals,
+  };
+};
+
 export {
   addVehicleImages,
   createVehicle,
   deleteVehicle,
+  getAdminReportStats,
   getAdminStats,
   getAllVehicles,
   getPublicVehicleById,

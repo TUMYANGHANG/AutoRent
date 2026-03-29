@@ -11,7 +11,6 @@ const FAQ = () => {
     name: "",
     email: "",
     subject: "",
-    department: "Business Department",
     question: "",
   });
 
@@ -78,7 +77,6 @@ const FAQ = () => {
       name: "",
       email: "",
       subject: "",
-      department: "Business Department",
       question: "",
     });
     alert("Your question has been submitted! We'll get back to you soon.");
@@ -248,31 +246,6 @@ const FAQ = () => {
                     className="w-full rounded-lg border border-gray-600 bg-gray-700/50 px-3 py-2 text-sm text-white placeholder-gray-400 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
                     placeholder="Enter subject"
                   />
-                </div>
-                <div>
-                  <label
-                    htmlFor="faq-department"
-                    className="mb-1 block text-sm font-medium text-gray-300"
-                  >
-                    Department
-                  </label>
-                  <select
-                    id="faq-department"
-                    name="department"
-                    value={formData.department}
-                    onChange={handleInputChange}
-                    className="w-full rounded-lg border border-gray-600 bg-gray-700/50 px-3 py-2 text-sm text-white focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
-                  >
-                    <option value="Business Department">
-                      Business Department
-                    </option>
-                    <option value="Customer Support">Customer Support</option>
-                    <option value="Technical Support">Technical Support</option>
-                    <option value="Billing Department">
-                      Billing Department
-                    </option>
-                    <option value="Sales Department">Sales Department</option>
-                  </select>
                 </div>
                 <div>
                   <label

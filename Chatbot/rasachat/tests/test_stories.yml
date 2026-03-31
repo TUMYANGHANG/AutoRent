@@ -1,0 +1,137 @@
+stories:
+
+  # ── Meta / Small-talk ──────────────────────────
+
+  - story: test greet and help
+    steps:
+      - user: |
+          hello
+        intent: greet
+      - action: utter_greet
+      - user: |
+          what can you do?
+        intent: help
+      - action: utter_help
+
+  # ── Booking (live backend actions) ─────────────
+
+  - story: test check availability
+    steps:
+      - user: |
+          are there any cars available?
+        intent: check_availability
+      - action: action_check_availability
+
+  - story: test vehicle options
+    steps:
+      - user: |
+          what types of vehicles do you have?
+        intent: request_vehicle_options
+      - action: action_fetch_vehicle_options
+
+  - story: test price estimate
+    steps:
+      - user: |
+          what are the rental rates?
+        intent: ask_price_estimate
+      - action: action_fetch_price_estimate
+
+  - story: test booking status
+    steps:
+      - user: |
+          what is the status of my booking?
+        intent: ask_booking_status
+      - action: action_fetch_booking_status
+
+  - story: test booking flow with live actions
+    steps:
+      - user: |
+          show me available vehicles
+        intent: check_availability
+      - action: action_check_availability
+      - user: |
+          how do I book a car?
+        intent: ask_how_to_book
+      - action: utter_ask_how_to_book
+      - user: |
+          what payment methods are accepted?
+        intent: ask_payment_methods
+      - action: utter_ask_payment_methods
+      - user: |
+          thanks
+        intent: thank_you
+      - action: utter_thank_you
+
+  # ── Cancel flow (live) ─────────────────────────
+
+  - story: test cancel booking
+    steps:
+      - user: |
+          I want to cancel my booking
+        intent: cancel_booking
+      - action: action_cancel_booking
+
+  - story: test cancel and refund
+    steps:
+      - user: |
+          how to cancel my booking?
+        intent: cancel_booking
+      - action: action_cancel_booking
+      - user: |
+          what is the refund policy?
+        intent: ask_refund_policy
+      - action: utter_ask_refund_policy
+
+  - story: test cancel then provide booking id
+    steps:
+      - user: |
+          cancel my booking
+        intent: cancel_booking
+      - action: action_cancel_booking
+      - user: |
+          550e8400-e29b-41d4-a716-446655440000
+        intent: provide_booking_id
+      - action: action_handle_pending_action
+
+  # ── General ────────────────────────────────────
+
+  - story: test out of scope
+    steps:
+      - user: |
+          what's the weather?
+        intent: out_of_scope
+      - action: utter_out_of_scope
+
+  - story: test login issue then support
+    steps:
+      - user: |
+          I can't log in
+        intent: login_issue
+      - action: utter_login_issue
+      - user: |
+          connect me with support
+        intent: contact_support
+      - action: utter_contact_support
+
+  - story: test full exploration with live data
+    steps:
+      - user: |
+          hi
+        intent: greet
+      - action: utter_greet
+      - user: |
+          what vehicles do you offer?
+        intent: request_vehicle_options
+      - action: action_fetch_vehicle_options
+      - user: |
+          what are the prices?
+        intent: ask_price_estimate
+      - action: action_fetch_price_estimate
+      - user: |
+          how do I book?
+        intent: ask_how_to_book
+      - action: utter_ask_how_to_book
+      - user: |
+          bye
+        intent: goodbye
+      - action: utter_goodbye

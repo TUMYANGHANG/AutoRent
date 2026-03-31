@@ -1,0 +1,6 @@
+{
+  "rule_only_slots": [
+    "pending_action"
+  ],
+  "rule_only_loops": []
+}

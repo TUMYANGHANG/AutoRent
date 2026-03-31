@@ -1,0 +1,294 @@
+version: "3.1"
+
+stories:
+
+  # ── Greeting flows ─────────────────────────────
+
+  - story: greet then ask for help
+    steps:
+      - intent: greet
+      - action: utter_greet
+      - intent: help
+      - action: utter_help
+
+  - story: greet then ask how to book
+    steps:
+      - intent: greet
+      - action: utter_greet
+      - intent: ask_how_to_book
+      - action: utter_ask_how_to_book
+      - intent: thank_you
+      - action: utter_thank_you
+
+  - story: greet then check availability (live)
+    steps:
+      - intent: greet
+      - action: utter_greet
+      - intent: check_availability
+      - action: action_check_availability
+
+  # ── Live booking journey ─────────────────────
+
+  - story: vehicle options then booking then payment
+    steps:
+      - intent: request_vehicle_options
+      - action: action_fetch_vehicle_options
+      - intent: ask_how_to_book
+      - action: utter_ask_how_to_book
+      - intent: ask_payment_methods
+      - action: utter_ask_payment_methods
+
+  - story: availability then price estimate (live)
+    steps:
+      - intent: check_availability
+      - action: action_check_availability
+      - intent: ask_price_estimate
+      - action: action_fetch_price_estimate
+
+  - story: pricing then payment methods
+    steps:
+      - intent: ask_price_estimate
+      - action: action_fetch_price_estimate
+      - intent: ask_payment_methods
+      - action: utter_ask_payment_methods
+
+  - story: pricing then affirm leads to payment methods
+    steps:
+      - intent: ask_price_estimate
+      - action: action_fetch_price_estimate
+      - intent: affirm
+      - action: utter_ask_payment_methods
+
+  - story: pricing model then booking
+    steps:
+      - intent: ask_pricing_model
+      - action: utter_ask_pricing_model
+      - intent: ask_how_to_book
+      - action: utter_ask_how_to_book
+
+  - story: pricing model then affirm leads to live prices
+    steps:
+      - intent: ask_pricing_model
+      - action: utter_ask_pricing_model
+      - intent: affirm
+      - action: action_fetch_price_estimate
+
+  - story: how to book then affirm leads to live pricing
+    steps:
+      - intent: ask_how_to_book
+      - action: utter_ask_how_to_book
+      - intent: affirm
+      - action: action_check_availability
+
+  - story: vehicle options then affirm leads to live pricing
+    steps:
+      - intent: request_vehicle_options
+      - action: action_fetch_vehicle_options
+      - intent: affirm
+      - action: action_fetch_price_estimate
+
+  - story: payment methods then affirm leads to refund policy
+    steps:
+      - intent: ask_payment_methods
+      - action: utter_ask_payment_methods
+      - intent: affirm
+      - action: utter_ask_refund_policy
+
+  - story: login issue then affirm leads to contact support
+    steps:
+      - intent: login_issue
+      - action: utter_login_issue
+      - intent: affirm
+      - action: utter_contact_support
+
+  # ── Booking status flows (live) ──────────────
+
+  - story: greet then check booking status
+    steps:
+      - intent: greet
+      - action: utter_greet
+      - intent: ask_booking_status
+      - action: action_fetch_booking_status
+
+  - story: booking status then contact support
+    steps:
+      - intent: ask_booking_status
+      - action: action_fetch_booking_status
+      - intent: contact_support
+      - action: utter_contact_support
+
+  - story: booking status then affirm leads to contact support
+    steps:
+      - intent: ask_booking_status
+      - action: action_fetch_booking_status
+      - intent: affirm
+      - action: utter_contact_support
+
+  - story: booking status then provide ID for detail
+    steps:
+      - intent: ask_booking_status
+      - action: action_fetch_booking_status
+      - intent: provide_booking_id
+      - action: action_handle_pending_action
+
+  # ── Cancel flows (live) ──────────────────────
+
+  - story: cancel booking then refund policy
+    steps:
+      - intent: cancel_booking
+      - action: action_cancel_booking
+      - intent: ask_refund_policy
+      - action: utter_ask_refund_policy
+
+  - story: cancel booking then affirm leads to refund policy
+    steps:
+      - intent: cancel_booking
+      - action: action_cancel_booking
+      - intent: affirm
+      - action: utter_ask_refund_policy
+
+  - story: cancel booking then deny
+    steps:
+      - intent: cancel_booking
+      - action: action_cancel_booking
+      - intent: deny
+      - action: utter_help
+
+  - story: cancel booking then provide booking ID
+    steps:
+      - intent: cancel_booking
+      - action: action_cancel_booking
+      - intent: provide_booking_id
+      - action: action_handle_pending_action
+
+  - story: cancel then provide ID then refund
+    steps:
+      - intent: cancel_booking
+      - action: action_cancel_booking
+      - intent: provide_booking_id
+      - action: action_handle_pending_action
+      - intent: affirm
+      - action: utter_ask_refund_policy
+
+  - story: modify booking then goodbye
+    steps:
+      - intent: modify_booking
+      - action: utter_modify_booking
+      - intent: thank_you
+      - action: utter_thank_you
+      - intent: goodbye
+      - action: utter_goodbye
+
+  # ── Rental terms / deposit ─────────────────────
+
+  - story: rental terms then deposit info
+    steps:
+      - intent: ask_rental_terms
+      - action: utter_ask_rental_terms
+      - intent: ask_deposit_info
+      - action: utter_ask_deposit_info
+
+  - story: rental terms then affirm leads to deposit info
+    steps:
+      - intent: ask_rental_terms
+      - action: utter_ask_rental_terms
+      - intent: affirm
+      - action: utter_ask_deposit_info
+
+  # ── Verification journey ───────────────────────
+
+  - story: account then verification then documents
+    steps:
+      - intent: account_help
+      - action: utter_account_help
+      - intent: ask_verification_process
+      - action: utter_ask_verification_process
+      - intent: ask_how_to_upload_documents
+      - action: utter_ask_how_to_upload_documents
+
+  - story: verification then affirm leads to document upload
+    steps:
+      - intent: ask_verification_process
+      - action: utter_ask_verification_process
+      - intent: affirm
+      - action: utter_ask_how_to_upload_documents
+
+  - story: documents then privacy
+    steps:
+      - intent: ask_how_to_upload_documents
+      - action: utter_ask_how_to_upload_documents
+      - intent: ask_security_privacy
+      - action: utter_ask_security_privacy
+
+  # ── Troubleshooting flows ──────────────────────
+
+  - story: login issue then contact support
+    steps:
+      - intent: login_issue
+      - action: utter_login_issue
+      - intent: contact_support
+      - action: utter_contact_support
+
+  - story: report issue then support
+    steps:
+      - intent: report_issue
+      - action: utter_report_issue
+      - intent: contact_support
+      - action: utter_contact_support
+
+  - story: login issue then password reset
+    steps:
+      - intent: login_issue
+      - action: utter_login_issue
+      - intent: change_password
+      - action: utter_change_password
+
+  # ── Navigation flows ───────────────────────────
+
+  - story: navigate then locator
+    steps:
+      - intent: navigate_feature
+      - action: utter_navigate_feature
+      - intent: ask_locator_usage
+      - action: utter_ask_locator_usage
+
+  - story: greet then navigate then goodbye
+    steps:
+      - intent: greet
+      - action: utter_greet
+      - intent: navigate_feature
+      - action: utter_navigate_feature
+      - intent: goodbye
+      - action: utter_goodbye
+
+  # ── Full booking exploration (live) ────────────
+
+  - story: full exploration - vehicles to booking to payment to goodbye
+    steps:
+      - intent: greet
+      - action: utter_greet
+      - intent: request_vehicle_options
+      - action: action_fetch_vehicle_options
+      - intent: ask_price_estimate
+      - action: action_fetch_price_estimate
+      - intent: ask_how_to_book
+      - action: utter_ask_how_to_book
+      - intent: ask_payment_methods
+      - action: utter_ask_payment_methods
+      - intent: thank_you
+      - action: utter_thank_you
+      - intent: goodbye
+      - action: utter_goodbye
+
+  - story: greet then availability then book then status then goodbye
+    steps:
+      - intent: greet
+      - action: utter_greet
+      - intent: check_availability
+      - action: action_check_availability
+      - intent: ask_how_to_book
+      - action: utter_ask_how_to_book
+      - intent: ask_booking_status
+      - action: action_fetch_booking_status
+      - intent: goodbye
+      - action: utter_goodbye

@@ -1,0 +1,306 @@
+version: "3.1"
+
+intents:
+  # Meta / Small-talk
+  - greet
+  - goodbye
+  - thank_you
+  - affirm
+  - deny
+  - bot_challenge
+  - help
+  - out_of_scope
+  # Booking Assistance
+  - ask_how_to_book
+  - check_availability
+  - request_vehicle_options
+  - ask_price_estimate
+  - ask_booking_status
+  - modify_booking
+  - cancel_booking
+  # Booking ID follow-up
+  - provide_booking_id
+  # FAQs
+  - ask_payment_methods
+  - ask_refund_policy
+  - ask_rental_terms
+  - ask_deposit_info
+  - ask_verification_process
+  - ask_how_to_upload_documents
+  - ask_security_privacy
+  - ask_pricing_model
+  - ask_locator_usage
+  # General Inquiries
+  - navigate_feature
+  - account_help
+  - login_issue
+  - change_password
+  - update_profile
+  - contact_support
+  - report_issue
+  # Fallback
+  - nlu_fallback
+
+entities:
+  - vehicle_type
+  - location
+  - booking_id
+
+slots:
+  vehicle_type:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: from_entity
+        entity: vehicle_type
+  location:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: from_entity
+        entity: location
+  booking_id:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: from_entity
+        entity: booking_id
+  pending_action:
+    type: text
+    influence_conversation: true
+    mappings:
+      - type: custom
+
+actions:
+  - action_check_availability
+  - action_fetch_vehicle_options
+  - action_fetch_price_estimate
+  - action_fetch_booking_status
+  - action_cancel_booking
+  - action_handle_pending_action
+  - action_list_booking_requests
+
+responses:
+
+  # ── Meta / Small-talk ──────────────────────────
+
+  utter_greet:
+    - text: "Namaste! Welcome to AutoRent 🙏\nI can help you with vehicle rentals, bookings, payments, and more.\nHow can I assist you today?"
+
+  utter_goodbye:
+    - text: "Thank you for using AutoRent! Feel free to come back anytime you need help. Have a great day!"
+    - text: "Goodbye! If you have more questions later, I'm always here. Take care!"
+
+  utter_thank_you:
+    - text: "You're welcome! Is there anything else I can help you with?"
+    - text: "Happy to help! Let me know if there's anything else you need."
+
+  utter_iamabot:
+    - text: "I'm AutoRent's virtual assistant, built to help you with bookings, FAQs, and platform navigation. I can also check live vehicle availability and help manage your bookings. If you need to speak with a person, just say 'contact support' and I'll guide you."
+
+  utter_help:
+    - text: |
+        Here's what I can help you with:
+
+        **Booking** – Check live availability, view pricing, booking status, modify or cancel bookings
+        **Payments** – Payment methods, refund policy, deposits
+        **Account** – Registration, login issues, profile updates, password reset
+        **Verification** – Document upload, identity verification
+        **Platform** – Navigate features, find garages, vehicle locator
+        **Support** – Contact our support team
+
+        What would you like to know about?
+
+  utter_out_of_scope:
+    - text: "I appreciate the question, but I can only help with AutoRent-related topics like vehicle rentals, bookings, payments, and account management. Could you ask me something about those? Or type **help** to see what I can do."
+    - text: "That's outside what I can help with, sorry! I'm here for anything related to AutoRent — bookings, payments, vehicles, account help, and more. Type **help** to see the full list."
+
+  utter_default:
+    - text: "I'm sorry, I didn't quite understand that. Could you rephrase your question? You can also type **help** to see the topics I can assist with, or say **contact support** to reach our team."
+    - text: "Hmm, I'm not sure I got that. Could you try asking in a different way? I can help with bookings, payments, account issues, and more."
+
+  # ── Booking Assistance (static fallbacks) ──────
+
+  utter_ask_how_to_book:
+    - text: |
+        Here's how to book a vehicle on AutoRent:
+
+        1. **Search** – Go to Vehicle Listings and filter by location, dates, and vehicle type (car, bike, jeep, or scooter).
+        2. **Select** – Choose a vehicle that fits your needs and budget.
+        3. **Review** – Check the rental terms, duration, insurance options, and fuel policy.
+        4. **Book** – Click "Book Now" and confirm your reservation.
+        5. **Pay** – Complete payment through Khalti.
+        6. **Confirmation** – You'll receive a booking confirmation with all the details.
+
+        Would you like me to check what vehicles are available right now?
+
+  utter_modify_booking:
+    - text: |
+        To modify your booking:
+
+        1. Log in and go to **My Bookings**.
+        2. Select the booking you want to change.
+        3. Click **Modify Booking** to update dates, vehicle type, or other details.
+        4. Review the updated terms and confirm the changes.
+
+        Modifications depend on vehicle availability and may affect pricing. If you face any issues, our support team can help.
+
+  # ── FAQs ────────────────────────────────────────
+
+  utter_ask_payment_methods:
+    - text: |
+        AutoRent currently supports payment through:
+
+        **Khalti** – A widely used digital payment platform in Nepal.
+
+        All payments are processed securely. You'll complete payment during the booking process after the owner approves your request. Would you like to know about the refund policy?
+
+  utter_ask_refund_policy:
+    - text: "Refund eligibility depends on the timing of your cancellation. If you cancel well before the rental start date, you're generally eligible for a full or partial refund. Cancellations close to the start date may have limited or no refund. Refunds are processed through the original payment method and may take a few business days. For specific details about your booking, check **My Bookings** or contact support."
+
+  utter_ask_rental_terms:
+    - text: |
+        Key rental terms on AutoRent:
+
+        **Duration** – Choose hourly or daily rentals. Extensions may be possible if the vehicle is available.
+        **Fuel Policy** – Vehicles are typically provided with a set fuel level; return them at the same level.
+        **Insurance** – Basic insurance may be included. Check the specific listing for coverage details.
+        **Condition** – Return vehicles in the same condition. Damages may be charged to your deposit.
+        **Late Returns** – Returning late may incur additional charges based on the late fee per hour.
+
+        Each vehicle listing shows its specific terms. Would you like to know about deposits or pricing?
+
+  utter_ask_deposit_info:
+    - text: "A security deposit may be required depending on the vehicle and owner's terms. The deposit amount is shown on the vehicle listing before you book. It's held during the rental period and returned after the vehicle comes back in good condition. If there are damages, repair costs may be deducted. For specific amounts, check the vehicle listing you're interested in."
+
+  utter_ask_verification_process:
+    - text: |
+        Verification helps keep AutoRent safe for everyone. Here's how it works:
+
+        1. Go to your **Profile** settings.
+        2. Upload your valid driver's license.
+        3. Submit for review — our team will verify your documents.
+        4. You'll be notified once verification is complete.
+
+        Verification is required before you can make booking requests. It usually takes a short time. Would you like to know how to upload documents?
+
+  utter_ask_how_to_upload_documents:
+    - text: |
+        To upload your verification documents:
+
+        1. Log in to your AutoRent account.
+        2. Go to **Profile** → **Verification**.
+        3. Upload your driver's license (clear photo or scanned copy).
+        4. Submit for review.
+
+        Make sure the image is clear and all details are readable. We only use your documents for identity verification.
+
+  utter_ask_security_privacy:
+    - text: "Your data security is a priority at AutoRent. We use **HTTPS encryption** for all communications and **JWT-based authentication** for secure sessions. Your personal documents are stored securely via Cloudinary. We never share your data with unauthorized parties. Payment information is handled by Khalti's trusted payment gateway and is not stored on our servers."
+
+  utter_ask_pricing_model:
+    - text: |
+        AutoRent pricing works like this:
+
+        **Daily Rates** – Each vehicle has a set price per day displayed on its listing.
+        **Security Deposit** – Some vehicles require a refundable security deposit.
+        **Late Fees** – Returning late incurs an hourly late fee (shown on the listing).
+        **Factors** – Price depends on vehicle type, model, owner's terms, and rental duration.
+
+        Each vehicle listing shows exact rates. Would you like me to check current prices?
+
+  utter_ask_locator_usage:
+    - text: |
+        AutoRent offers a **Garage Locator** feature:
+
+        Find nearby garages and service points on the map for emergencies or maintenance. Go to the **Garages** section from the navigation menu and allow location access.
+
+        The map uses MapLibre and shows garages across Nepal. You can search and filter by your area.
+
+  # ── General Inquiries ──────────────────────────
+
+  utter_navigate_feature:
+    - text: |
+        Here's where to find key features on AutoRent:
+
+        **Vehicle Listings** – Browse and search from the "Rent Vehicle" menu.
+        **My Bookings** – View and manage reservations from your dashboard.
+        **Profile & Verification** – Update your info under your dashboard.
+        **Garage Locator** – Find nearby garages from the "Garages" section.
+        **Favorites** – View saved vehicles from the "Favorites" page.
+        **Support** – Access help from the "Contact" page.
+
+        What feature would you like to navigate to?
+
+  utter_account_help:
+    - text: |
+        To create an AutoRent account:
+
+        1. Click **Sign Up** on the home page.
+        2. Enter your name, email, and create a password.
+        3. Choose your role: **Renter** (to book vehicles) or **Owner** (to list vehicles).
+        4. Verify your email via the OTP sent to your inbox.
+        5. Complete your profile and upload verification documents.
+
+        Once registered, you can start browsing and booking. Would you like help with anything else?
+
+  utter_login_issue:
+    - text: |
+        Sorry to hear you're having trouble logging in. Here are some things to try:
+
+        1. **Check your credentials** – Make sure your email and password are correct.
+        2. **Reset your password** – Click "Forgot Password" on the login page and verify via OTP.
+        3. **Clear browser cache** – Old data can sometimes cause issues.
+        4. **Try another browser or device** – This helps rule out browser-specific problems.
+
+        If none of these work, please contact our support team for further help.
+
+  utter_change_password:
+    - text: |
+        To change or reset your password:
+
+        1. Go to the **Login** page and click **"Forgot Password"**.
+        2. Enter your registered email address.
+        3. You'll receive an OTP — verify it.
+        4. Set your new password.
+
+        If you're already logged in, you can also update your password from your profile settings.
+
+  utter_update_profile:
+    - text: |
+        To update your profile:
+
+        1. Log in to your AutoRent account.
+        2. Go to your **Dashboard** → **Profile**.
+        3. Update your name, phone number, address, or other details.
+        4. Click **Save** to apply the changes.
+
+        Some changes (like email) may require re-verification for security.
+
+  utter_contact_support:
+    - text: |
+        You can reach our support team through:
+
+        **Contact Page** – Visit the Contact section on the platform to send us a message.
+        **Email** – Send an email via the address listed in the Contact section.
+        **Chat** – You can chat with vehicle owners directly through the booking chat feature.
+
+        Our team is here to help with anything the chatbot can't resolve. Is there anything else I can try to help with first?
+
+  utter_report_issue:
+    - text: |
+        I'm sorry you're facing an issue. To report a problem:
+
+        1. Go to the **Contact** page.
+        2. Describe the problem in detail so our team can investigate.
+
+        For urgent issues, reach out via the contact details provided. We'll do our best to resolve it quickly.
+
+  # ── Pending action prompts ─────────────────────
+
+  utter_ask_for_booking_id:
+    - text: "Could you please provide the **booking ID**? You can find it on your **My Bookings** page."
+
+session_config:
+  session_expiration_time: 60
+  carry_over_slots_to_new_session: true

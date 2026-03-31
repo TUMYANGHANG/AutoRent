@@ -1,0 +1,173 @@
+version: "3.1"
+
+rules:
+
+  # ── Meta / Small-talk ──────────────────────────
+
+  - rule: Say goodbye
+    steps:
+      - intent: goodbye
+      - action: utter_goodbye
+
+  - rule: Respond to bot challenge
+    steps:
+      - intent: bot_challenge
+      - action: utter_iamabot
+
+  - rule: Respond to thanks
+    steps:
+      - intent: thank_you
+      - action: utter_thank_you
+
+  - rule: Respond to help request
+    steps:
+      - intent: help
+      - action: utter_help
+
+  - rule: Respond to out of scope
+    steps:
+      - intent: out_of_scope
+      - action: utter_out_of_scope
+
+  # ── Booking Assistance (live backend actions) ──
+
+  - rule: Explain how to book
+    steps:
+      - intent: ask_how_to_book
+      - action: utter_ask_how_to_book
+
+  - rule: Check availability via backend
+    steps:
+      - intent: check_availability
+      - action: action_check_availability
+
+  - rule: Show vehicle options from backend
+    steps:
+      - intent: request_vehicle_options
+      - action: action_fetch_vehicle_options
+
+  - rule: Fetch price estimate from backend
+    steps:
+      - intent: ask_price_estimate
+      - action: action_fetch_price_estimate
+
+  - rule: Fetch booking status from backend
+    steps:
+      - intent: ask_booking_status
+      - action: action_fetch_booking_status
+
+  - rule: Respond to modify booking
+    steps:
+      - intent: modify_booking
+      - action: utter_modify_booking
+
+  - rule: Cancel booking via backend
+    steps:
+      - intent: cancel_booking
+      - action: action_cancel_booking
+
+  # ── Booking ID follow-up ─────────────────────
+
+  - rule: Handle booking ID when pending action exists
+    condition:
+      - slot_was_set:
+          - pending_action: "cancel_booking"
+    steps:
+      - intent: provide_booking_id
+      - action: action_handle_pending_action
+
+  - rule: Handle booking ID for status lookup
+    steps:
+      - intent: provide_booking_id
+      - action: action_handle_pending_action
+
+  # ── FAQs ────────────────────────────────────────
+
+  - rule: Respond to payment methods
+    steps:
+      - intent: ask_payment_methods
+      - action: utter_ask_payment_methods
+
+  - rule: Respond to refund policy
+    steps:
+      - intent: ask_refund_policy
+      - action: utter_ask_refund_policy
+
+  - rule: Respond to rental terms
+    steps:
+      - intent: ask_rental_terms
+      - action: utter_ask_rental_terms
+
+  - rule: Respond to deposit info
+    steps:
+      - intent: ask_deposit_info
+      - action: utter_ask_deposit_info
+
+  - rule: Respond to verification process
+    steps:
+      - intent: ask_verification_process
+      - action: utter_ask_verification_process
+
+  - rule: Respond to document upload
+    steps:
+      - intent: ask_how_to_upload_documents
+      - action: utter_ask_how_to_upload_documents
+
+  - rule: Respond to security privacy
+    steps:
+      - intent: ask_security_privacy
+      - action: utter_ask_security_privacy
+
+  - rule: Respond to pricing model
+    steps:
+      - intent: ask_pricing_model
+      - action: utter_ask_pricing_model
+
+  - rule: Respond to locator usage
+    steps:
+      - intent: ask_locator_usage
+      - action: utter_ask_locator_usage
+
+  # ── General Inquiries ──────────────────────────
+
+  - rule: Respond to navigation
+    steps:
+      - intent: navigate_feature
+      - action: utter_navigate_feature
+
+  - rule: Respond to account help
+    steps:
+      - intent: account_help
+      - action: utter_account_help
+
+  - rule: Respond to login issue
+    steps:
+      - intent: login_issue
+      - action: utter_login_issue
+
+  - rule: Respond to password change
+    steps:
+      - intent: change_password
+      - action: utter_change_password
+
+  - rule: Respond to profile update
+    steps:
+      - intent: update_profile
+      - action: utter_update_profile
+
+  - rule: Respond to contact support
+    steps:
+      - intent: contact_support
+      - action: utter_contact_support
+
+  - rule: Respond to report issue
+    steps:
+      - intent: report_issue
+      - action: utter_report_issue
+
+  # ── Fallback ────────────────────────────────────
+
+  - rule: Ask the user to rephrase when NLU confidence is low
+    steps:
+      - intent: nlu_fallback
+      - action: utter_default

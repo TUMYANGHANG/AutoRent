@@ -1,0 +1,523 @@
+version: "3.1"
+
+nlu:
+
+# ──────────────────────────────────────
+# Regex patterns
+# ──────────────────────────────────────
+
+- regex: booking_id
+  examples: |
+    - [0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}
+
+# ──────────────────────────────────────
+# Meta / Small-talk
+# ──────────────────────────────────────
+
+- intent: greet
+  examples: |
+    - hey
+    - hello
+    - hi
+    - hello there
+    - good morning
+    - good evening
+    - hey there
+    - good afternoon
+    - namaste
+    - hi there
+    - greetings
+    - howdy
+    - hey dude
+    - good day
+
+- intent: goodbye
+  examples: |
+    - bye
+    - goodbye
+    - see you later
+    - bye bye
+    - have a nice day
+    - see you around
+    - good night
+    - take care
+    - see you
+    - catch you later
+    - I'm done
+    - that's all
+
+- intent: thank_you
+  examples: |
+    - thanks
+    - thank you
+    - thank you so much
+    - thanks a lot
+    - many thanks
+    - appreciate it
+    - that was helpful
+    - thanks for your help
+    - thank you very much
+    - cheers
+
+- intent: affirm
+  examples: |
+    - yes
+    - y
+    - indeed
+    - of course
+    - that sounds good
+    - correct
+    - sure
+    - yeah
+    - yep
+    - okay
+    - ok
+    - right
+    - absolutely
+
+- intent: deny
+  examples: |
+    - no
+    - n
+    - never
+    - I don't think so
+    - don't like that
+    - no way
+    - not really
+    - nope
+    - no thanks
+    - not interested
+    - I disagree
+
+- intent: bot_challenge
+  examples: |
+    - are you a bot?
+    - are you a human?
+    - am I talking to a bot?
+    - am I talking to a human?
+    - are you real?
+    - are you a robot?
+    - is this automated?
+    - who am I chatting with?
+    - are you an AI?
+
+- intent: help
+  examples: |
+    - help
+    - help me
+    - I need help
+    - what can you do?
+    - what do you offer?
+    - can you help me?
+    - I need assistance
+    - how can you help?
+    - what are your features?
+    - show me what you can do
+    - what services do you provide?
+    - I'm confused
+    - guide me
+    - menu
+
+- intent: out_of_scope
+  examples: |
+    - what's the weather today?
+    - tell me a joke
+    - who is the president of Nepal?
+    - what's your favorite color?
+    - can you order food for me?
+    - play some music
+    - what's the time?
+    - tell me about yourself
+    - what's the meaning of life?
+    - how old are you?
+    - do you like pizza?
+    - what's happening in the news?
+    - convert 100 USD to NPR
+
+# ──────────────────────────────────────
+# Booking Assistance
+# ──────────────────────────────────────
+
+- intent: ask_how_to_book
+  examples: |
+    - how do I book a vehicle?
+    - how can I rent a [car](vehicle_type)?
+    - I want to book a [bike](vehicle_type)
+    - how to rent a vehicle?
+    - what are the steps to book?
+    - can you guide me through booking?
+    - I'd like to rent a [jeep](vehicle_type)
+    - how does booking work?
+    - walk me through the booking process
+    - how can I reserve a vehicle?
+    - I want to rent a vehicle
+    - booking process please
+    - steps to rent a [car](vehicle_type)
+    - how to reserve a [bike](vehicle_type)?
+    - I want to book a [scooter](vehicle_type)
+
+- intent: check_availability
+  examples: |
+    - are there vehicles available?
+    - is there a [car](vehicle_type) available in [Kathmandu](location)?
+    - check availability for [bikes](vehicle_type)
+    - what vehicles are available right now?
+    - any [jeeps](vehicle_type) available in [Pokhara](location)?
+    - show me available vehicles
+    - are there any [cars](vehicle_type) for rent?
+    - I need a vehicle in [Lalitpur](location)
+    - what's available in [Bhaktapur](location)?
+    - do you have [scooters](vehicle_type) available?
+    - is there anything available for tomorrow?
+    - available vehicles near me
+    - check if [bikes](vehicle_type) are free
+    - any vehicles in [Chitwan](location)?
+    - show available [cars](vehicle_type)
+    - what [jeeps](vehicle_type) are available?
+    - any [SUV](vehicle_type) available in [Biratnagar](location)?
+    - find me a [bike](vehicle_type) in [Butwal](location)
+    - list available vehicles
+
+- intent: request_vehicle_options
+  examples: |
+    - what types of vehicles do you have?
+    - show me vehicle categories
+    - what vehicles can I rent?
+    - do you have [cars](vehicle_type) and [bikes](vehicle_type)?
+    - what are the vehicle options?
+    - list all vehicle types
+    - what kind of vehicles are available?
+    - tell me about the vehicles you offer
+    - categories of vehicles
+    - do you offer [jeeps](vehicle_type)?
+    - what rental options do you have?
+    - vehicle types on AutoRent
+    - list all the vehicles
+    - list all vehicles
+    - show all vehicles
+    - show me all the vehicles
+    - what vehicles are there?
+
+- intent: ask_price_estimate
+  examples: |
+    - how much does it cost to rent a [car](vehicle_type)?
+    - what's the price for a [bike](vehicle_type) rental?
+    - rental prices please
+    - how much is a [jeep](vehicle_type) per day?
+    - what are the rental rates?
+    - give me a price estimate
+    - how expensive is it to rent?
+    - cost of renting a [scooter](vehicle_type)
+    - what's the daily rate?
+    - how much do I need to pay?
+    - pricing for vehicle rentals
+    - what are the charges?
+    - hourly rate for a [car](vehicle_type)?
+    - what is the rate for [bikes](vehicle_type)?
+    - how much for a [SUV](vehicle_type)?
+    - show me prices
+
+- intent: ask_booking_status
+  examples: |
+    - how can I check my booking status?
+    - where do I see my booking?
+    - I want to check my reservation status
+    - how do I know if my booking is confirmed?
+    - booking status
+    - is my booking confirmed?
+    - how to track my booking?
+    - where can I find my booking details?
+    - check my reservation
+    - has my booking been approved?
+    - I want to see my booking history
+    - what is the status of my booking?
+    - show me my bookings
+    - list my bookings
+    - what bookings do I have?
+    - check status of booking [550e8400-e29b-41d4-a716-446655440000](booking_id)
+    - status of booking [a1b2c3d4-e5f6-7890-abcd-ef1234567890](booking_id)
+    - what is the status of [12345678-abcd-1234-abcd-1234567890ab](booking_id)?
+
+- intent: modify_booking
+  examples: |
+    - how can I change my booking?
+    - I want to modify my reservation
+    - can I update my booking dates?
+    - how do I edit my booking?
+    - change my rental dates
+    - I need to reschedule my booking
+    - modify my vehicle reservation
+    - can I change the vehicle type in my booking?
+    - update my booking
+    - I want to change my pickup date
+    - how to alter my reservation?
+    - edit my reservation details
+
+- intent: cancel_booking
+  examples: |
+    - how do I cancel my booking?
+    - I want to cancel my reservation
+    - cancel my rental
+    - how to cancel?
+    - I need to cancel my booking
+    - cancellation process
+    - can I cancel my vehicle booking?
+    - I don't want the booking anymore
+    - how to cancel a reservation?
+    - what's the cancellation process?
+    - please cancel my booking
+    - I changed my mind, cancel it
+    - cancel booking [550e8400-e29b-41d4-a716-446655440000](booking_id)
+    - I want to cancel [a1b2c3d4-e5f6-7890-abcd-ef1234567890](booking_id)
+    - cancel [12345678-abcd-1234-abcd-1234567890ab](booking_id)
+
+- intent: provide_booking_id
+  examples: |
+    - [550e8400-e29b-41d4-a716-446655440000](booking_id)
+    - [a1b2c3d4-e5f6-7890-abcd-ef1234567890](booking_id)
+    - [12345678-abcd-1234-abcd-1234567890ab](booking_id)
+    - my booking id is [7f3a2b1c-4d5e-6f7a-8b9c-0d1e2f3a4b5c](booking_id)
+    - the id is [abcd1234-ef56-7890-abcd-ef1234567890](booking_id)
+    - here is the id [11111111-2222-3333-4444-555555555555](booking_id)
+    - booking [99998888-7777-6666-5555-444433332222](booking_id)
+    - it's [aaaabbbb-cccc-dddd-eeee-ffffffffffff](booking_id)
+    - [deadbeef-cafe-babe-face-123456789abc](booking_id) please
+    - that would be [fedcba98-7654-3210-fedc-ba9876543210](booking_id)
+
+# ──────────────────────────────────────
+# FAQs
+# ──────────────────────────────────────
+
+- intent: ask_payment_methods
+  examples: |
+    - what payment methods do you accept?
+    - how can I pay?
+    - do you accept eSewa?
+    - can I pay with Khalti?
+    - is Stripe accepted?
+    - payment options
+    - what are the available payment methods?
+    - how do I make a payment?
+    - can I pay online?
+    - accepted payment gateways
+    - do you take cash?
+    - how to pay for my rental?
+    - which wallets are supported?
+
+- intent: ask_refund_policy
+  examples: |
+    - what is the refund policy?
+    - can I get a refund?
+    - how do refunds work?
+    - refund policy
+    - will I get my money back if I cancel?
+    - what happens if I cancel my booking?
+    - is there a refund for cancellations?
+    - how long does a refund take?
+    - tell me about refunds
+    - refund process
+    - when will I receive my refund?
+
+- intent: ask_rental_terms
+  examples: |
+    - what are the rental terms?
+    - rental conditions
+    - terms and conditions for renting
+    - what are the rules for renting?
+    - rental policies
+    - what should I know before renting?
+    - are there any rental restrictions?
+    - what are the rental guidelines?
+    - fuel policy
+    - insurance options
+    - tell me about insurance for rentals
+    - what's included in the rental?
+    - rental agreement details
+
+- intent: ask_deposit_info
+  examples: |
+    - is there a security deposit?
+    - do I need to pay a deposit?
+    - how much is the deposit?
+    - security deposit information
+    - what's the deposit amount?
+    - tell me about the deposit
+    - is a deposit required?
+    - when do I get my deposit back?
+    - deposit policy
+    - refundable deposit details
+    - what happens to my deposit?
+
+- intent: ask_verification_process
+  examples: |
+    - how does verification work?
+    - what is the verification process?
+    - how do I get verified?
+    - verification steps
+    - what documents do I need for verification?
+    - how long does verification take?
+    - why do I need to verify my identity?
+    - tell me about the verification system
+    - identity verification process
+    - how to complete verification?
+    - do I need to be verified to rent?
+
+- intent: ask_how_to_upload_documents
+  examples: |
+    - how do I upload my documents?
+    - where can I submit my ID?
+    - document upload process
+    - how to upload my driver's license?
+    - where do I upload my identity documents?
+    - steps to upload documents
+    - I need to upload my license
+    - how to submit verification documents?
+    - can I upload my documents online?
+    - document submission process
+    - where to upload citizenship?
+
+- intent: ask_security_privacy
+  examples: |
+    - how is my data protected?
+    - is my personal information safe?
+    - data privacy policy
+    - how do you handle my data?
+    - is my information secure?
+    - privacy policy
+    - what about data protection?
+    - how secure is this platform?
+    - tell me about security measures
+    - is my payment information safe?
+    - how do you protect personal data?
+    - data safety on AutoRent
+
+- intent: ask_pricing_model
+  examples: |
+    - how does pricing work?
+    - hourly vs daily rates
+    - what's the pricing model?
+    - are there any discounts?
+    - how are rental prices calculated?
+    - is there a difference between hourly and daily rates?
+    - tell me about pricing
+    - do you offer discounts for longer rentals?
+    - pricing structure
+    - how do you calculate rental cost?
+    - explain the pricing system
+
+- intent: ask_locator_usage
+  examples: |
+    - how do I find nearby garages?
+    - where is the nearest garage?
+    - garage locator
+    - how to use the map feature?
+    - find a garage near me
+    - how does the garage locator work?
+    - vehicle locator feature
+    - how to find vehicles near me?
+    - show me nearby service points
+    - how to use the locator?
+    - where can I find the nearest vehicle?
+    - map features on AutoRent
+
+# ──────────────────────────────────────
+# General Inquiries
+# ──────────────────────────────────────
+
+- intent: navigate_feature
+  examples: |
+    - where can I find vehicle listings?
+    - how do I access my booking history?
+    - where is the profile section?
+    - how to go to vehicle listings?
+    - show me the menu
+    - where can I find my bookings?
+    - how do I navigate to support?
+    - where is the help section?
+    - take me to vehicle search
+    - how to access the dashboard?
+    - where is my account page?
+
+- intent: account_help
+  examples: |
+    - how do I create an account?
+    - sign up process
+    - how to register?
+    - I want to create a new account
+    - registration steps
+    - how can I sign up?
+    - account creation help
+    - how do I make an account?
+    - what do I need to register?
+    - guide me through registration
+    - how to register on AutoRent?
+
+- intent: login_issue
+  examples: |
+    - I can't log in
+    - login is not working
+    - I'm having trouble logging in
+    - my login failed
+    - I forgot my password
+    - I can't access my account
+    - login problem
+    - unable to sign in
+    - why can't I log in?
+    - my account is locked
+    - having trouble with login
+    - I keep getting login errors
+
+- intent: change_password
+  examples: |
+    - how do I change my password?
+    - I want to reset my password
+    - password change
+    - how to update my password?
+    - forgot my password
+    - reset password process
+    - can I change my password?
+    - how to set a new password?
+    - password reset help
+    - I need to reset my password
+
+- intent: update_profile
+  examples: |
+    - how do I update my profile?
+    - I want to change my profile information
+    - edit my profile
+    - how to update my phone number?
+    - change my email address
+    - update my personal details
+    - profile settings
+    - how can I edit my account info?
+    - update my name on the profile
+    - how to change my profile picture?
+
+- intent: contact_support
+  examples: |
+    - how do I contact support?
+    - I need to talk to someone
+    - customer support
+    - connect me with a human
+    - how to reach customer service?
+    - I want to speak to an agent
+    - support contact details
+    - is there a helpline?
+    - how can I get help from a person?
+    - escalate my issue
+    - transfer me to support
+    - I want to talk to a real person
+
+- intent: report_issue
+  examples: |
+    - I want to report a problem
+    - something is not working
+    - I found a bug
+    - there's an issue with the platform
+    - I want to file a complaint
+    - report an error
+    - the system is not working properly
+    - I'm facing a technical issue
+    - something went wrong
+    - I have a problem with the website
+    - the app is broken

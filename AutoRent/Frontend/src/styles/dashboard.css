@@ -1,0 +1,100 @@
+/* AutoRent dashboard shell — used by Admin + Owner dashboards only (scoped via .dash-app) */
+.dash-app {
+  font-family:
+    "Plus Jakarta Sans",
+    -apple-system,
+    BlinkMacSystemFont,
+    system-ui,
+    sans-serif;
+}
+
+.dash-shell {
+  position: relative;
+  min-height: 100%;
+  background-color: #f1f5f9;
+  background-image:
+    radial-gradient(at 0% 0%, rgba(20, 184, 166, 0.09) 0px, transparent 52%),
+    radial-gradient(at 100% 0%, rgba(59, 130, 246, 0.08) 0px, transparent 48%),
+    radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.07) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, rgba(244, 63, 94, 0.06) 0px, transparent 48%);
+}
+
+.dash-shell::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  opacity: 0.5;
+}
+
+.dash-panel {
+  border-radius: 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 12px 40px rgba(15, 23, 42, 0.06);
+  backdrop-filter: blur(12px);
+}
+
+.dash-panel--lift {
+  transition:
+    box-shadow 0.25s ease,
+    border-color 0.25s ease,
+    transform 0.25s ease;
+}
+
+.dash-panel--lift:hover {
+  border-color: rgba(148, 163, 184, 0.55);
+  box-shadow:
+    0 4px 6px rgba(15, 23, 42, 0.05),
+    0 20px 50px rgba(15, 23, 42, 0.1);
+  transform: translateY(-2px);
+}
+
+@keyframes dash-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dash-animate-in {
+  animation: dash-fade-up 0.45s ease-out both;
+}
+
+.dash-animate-in-delay-1 {
+  animation-delay: 0.06s;
+}
+.dash-animate-in-delay-2 {
+  animation-delay: 0.12s;
+}
+.dash-animate-in-delay-3 {
+  animation-delay: 0.18s;
+}
+
+/* Stagger KPI cards */
+.dash-kpi-grid > * {
+  animation: dash-fade-up 0.5s ease-out both;
+  opacity: 0;
+}
+.dash-kpi-grid > *:nth-child(1) {
+  animation-delay: 0.04s;
+}
+.dash-kpi-grid > *:nth-child(2) {
+  animation-delay: 0.1s;
+}
+.dash-kpi-grid > *:nth-child(3) {
+  animation-delay: 0.16s;
+}
+.dash-kpi-grid > *:nth-child(4) {
+  animation-delay: 0.22s;
+}
+.dash-kpi-grid > *:nth-child(n) {
+  animation-fill-mode: forwards;
+}

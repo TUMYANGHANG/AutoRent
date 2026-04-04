@@ -118,6 +118,6 @@ server.listen(PORT, async () => {
 });
 
 app.use(cors({
-  origin: 'https://autorentfyp.vercel.app',
+  origin: 'https://autorentfyp.vercel.app' || 'https://auto-rent-one.vercel.app',
   credentials: true
 }));

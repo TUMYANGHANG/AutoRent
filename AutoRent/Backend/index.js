@@ -27,8 +27,36 @@ import { registerChatHandlers } from "./sockets/chatSocket.js";
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
-app.use(cors());
+/** Comma-separated in Render: https://app1.vercel.app,https://app2.vercel.app */
+function getAllowedOrigins() {
+  const fromEnv = (process.env.FRONTEND_URL || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const defaults = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://autorentfyp.vercel.app",
+    "https://auto-rent-one.vercel.app",
+  ];
+  return [...new Set([...fromEnv, ...defaults])];
+}
+
+const allowedOrigins = getAllowedOrigins();
+
+function corsOriginCallback(origin, callback) {
+  if (!origin) return callback(null, true);
+  if (allowedOrigins.includes(origin)) return callback(null, true);
+  callback(null, false);
+}
+
+// Middleware — single CORS config (multiple Vercel URLs + localhost)
+app.use(
+  cors({
+    origin: corsOriginCallback,
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -58,8 +86,9 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:5173"|| "https://auto-rent-one.vercel.app",
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
+    credentials: true,
   },
 });
 
@@ -116,8 +145,3 @@ server.listen(PORT, async () => {
 
   startBookingScheduler();
 });
-
-app.use(cors({
-  origin: 'https://autorentfyp.vercel.app' || 'https://auto-rent-one.vercel.app',
-  credentials: true
-}));

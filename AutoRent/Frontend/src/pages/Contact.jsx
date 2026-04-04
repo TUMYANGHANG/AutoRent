@@ -7,6 +7,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useState } from "react";
 import contactImage from "../assets/wmremove-transformed.jpeg";
 import { contactInquiryAPI } from "../utils/api.js";
+import { validateContactInquiryForm } from "../utils/formValidation.js";
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -29,6 +30,17 @@ const Contact = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitMessage(null);
+    const v = validateContactInquiryForm({
+      name: formData.name,
+      email: formData.email,
+      message: formData.question,
+      phone: formData.phone,
+      subject: null,
+    });
+    if (v) {
+      setSubmitMessage({ type: "err", text: v });
+      return;
+    }
     setSubmitting(true);
     try {
       await contactInquiryAPI.submit({

@@ -11,6 +11,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { contactInquiryAPI } from "../utils/api.js";
+import { validateContactInquiryForm } from "../utils/formValidation.js";
 
 const Footer = () => {
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -21,6 +22,7 @@ const Footer = () => {
     message: "",
   });
   const [footerSubmitting, setFooterSubmitting] = useState(false);
+  const [footerFormError, setFooterFormError] = useState("");
 
   useEffect(() => {
     const handleScroll = () => {
@@ -36,6 +38,7 @@ const Footer = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    setFooterFormError("");
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -44,6 +47,18 @@ const Footer = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setFooterFormError("");
+    const v = validateContactInquiryForm({
+      name: formData.name,
+      email: formData.email,
+      message: formData.message,
+      phone: null,
+      subject: null,
+    });
+    if (v) {
+      setFooterFormError(v);
+      return;
+    }
     setFooterSubmitting(true);
     try {
       await contactInquiryAPI.submit({
@@ -57,7 +72,7 @@ const Footer = () => {
       setFormData({ name: "", email: "", message: "" });
       setShowContactForm(false);
     } catch (err) {
-      alert(err?.message || "Could not send. Please try again.");
+      setFooterFormError(err?.message || "Could not send. Please try again.");
     } finally {
       setFooterSubmitting(false);
     }
@@ -259,6 +274,14 @@ const Footer = () => {
                   </button>
                 </div>
                 <form onSubmit={handleSubmit} className="space-y-3">
+                  {footerFormError && (
+                    <div
+                      className="rounded-lg border border-red-500/30 bg-red-500/10 px-2 py-1.5 text-xs text-red-300"
+                      role="alert"
+                    >
+                      {footerFormError}
+                    </div>
+                  )}
                   <div>
                     <label
                       htmlFor="contact-name"

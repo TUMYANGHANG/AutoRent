@@ -292,6 +292,8 @@ nlu:
   examples: |
     - what payment methods do you accept?
     - how can I pay?
+    - pay on pickup
+    - can I pay when I pick up the car?
     - do you accept eSewa?
     - can I pay with Khalti?
     - is Stripe accepted?

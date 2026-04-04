@@ -6,6 +6,7 @@ import {
   getReviewsController,
 } from "../controller/vehicleReviewController.js";
 import { authenticateToken } from "../middleware/auth.js";
+import { validateReviewBody } from "../middleware/validators/reviewValidation.js";
 
 const router = express.Router({ mergeParams: true });
 
@@ -15,6 +16,6 @@ router.get("/vehicles/:vehicleId/reviews", getReviewsController);
 
 // Auth required
 router.get("/vehicles/:vehicleId/reviews/me", authenticateToken, getMyReviewController);
-router.post("/vehicles/:vehicleId/reviews", authenticateToken, createReviewController);
+router.post("/vehicles/:vehicleId/reviews", authenticateToken, validateReviewBody, createReviewController);
 
 export default router;

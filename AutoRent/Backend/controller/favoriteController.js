@@ -60,13 +60,6 @@ const addFavoriteController = async (req, res) => {
     const role = req.user.role;
     const { vehicleId } = req.body;
 
-    if (!vehicleId) {
-      return res.status(400).json({
-        success: false,
-        message: "vehicleId is required",
-      });
-    }
-
     if (role === "renter") {
       const [user] = await db
         .select({ isProfileVerified: users.isProfileVerified })

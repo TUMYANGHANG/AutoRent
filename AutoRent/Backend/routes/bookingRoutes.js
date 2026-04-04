@@ -9,6 +9,7 @@ import {
   getOwnerStatsController,
 } from "../controller/bookingController.js";
 import { authenticateToken } from "../middleware/auth.js";
+import { validateCreateBooking } from "../middleware/validators/bookingCreateValidation.js";
 
 const router = express.Router();
 
@@ -18,7 +19,7 @@ router.get("/bookings/stats", getOwnerStatsController);
 router.get("/bookings/stats/earnings", getOwnerEarningsReportController);
 router.get("/bookings", getBookingsController);
 router.get("/bookings/:id", getBookingByIdController);
-router.post("/bookings", ensureVerifiedRenter, createBookingController);
+router.post("/bookings", ensureVerifiedRenter, validateCreateBooking, createBookingController);
 router.patch("/bookings/:id/cancel", cancelBookingController);
 
 export default router;

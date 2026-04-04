@@ -16,6 +16,7 @@ import {
   getAuthToken,
   renterAPI,
 } from "../utils/api.js";
+import { getBookingStep1Errors } from "../utils/formValidation.js";
 
 const formatPrice = (value) => {
   if (value == null || value === "") return "—";
@@ -92,19 +93,7 @@ const VehicleBook = () => {
   const amountToPay = rentalAmount; // Rental only; security deposit is collateral (returned on vehicle return)
 
   const validateStep1 = () => {
-    const err = {};
-    if (!form.startDate) err.startDate = "Start date is required";
-    if (!form.returnDate) err.returnDate = "Return date is required";
-    if (!form.pickupPlace?.trim()) err.pickupPlace = "Pickup place is required";
-    if (form.startDate && form.returnDate) {
-      const start = new Date(form.startDate);
-      const end = new Date(form.returnDate);
-      if (start > end)
-        err.returnDate = "Return date must be on or after start date";
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      if (start < today) err.startDate = "Start date cannot be in the past";
-    }
+    const err = getBookingStep1Errors(form);
     setFormErrors(err);
     return Object.keys(err).length === 0;
   };
@@ -117,6 +106,12 @@ const VehicleBook = () => {
   };
 
   const handleSubmitRequest = async () => {
+    const stepErr = getBookingStep1Errors(form);
+    setFormErrors(stepErr);
+    if (Object.keys(stepErr).length > 0) {
+      setSubmitError("Please fix the highlighted fields.");
+      return;
+    }
     setSubmitLoading(true);
     setSubmitError(null);
     try {

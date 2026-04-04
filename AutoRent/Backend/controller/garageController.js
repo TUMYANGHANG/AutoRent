@@ -29,21 +29,7 @@ const getGaragesForMapController = async (req, res) => {
   try {
     const { bbox, limit } = req.query;
 
-    if (!bbox || typeof bbox !== "string") {
-      return res.status(400).json({
-        success: false,
-        message: "bbox query parameter is required (west,south,east,north)",
-      });
-    }
-
-    const parts = bbox.split(",").map((p) => p.trim());
-    if (parts.length !== 4) {
-      return res.status(400).json({
-        success: false,
-        message: "bbox must have 4 comma-separated numbers: west,south,east,north",
-      });
-    }
-
+    const parts = String(bbox).split(",").map((p) => p.trim());
     const [west, south, east, north] = parts;
 
     const data = await getGaragesInBbox({ west, south, east, north, limit });
@@ -87,22 +73,8 @@ const createGarageController = async (req, res) => {
     const { name, latitude, longitude, city, district, province, address, phone, email, website, openingHours, type } =
       req.body || {};
 
-    if (!name || latitude == null || longitude == null) {
-      return res.status(400).json({
-        success: false,
-        message: "name, latitude, and longitude are required",
-      });
-    }
-
     const latNum = Number(latitude);
     const lngNum = Number(longitude);
-
-    if (Number.isNaN(latNum) || Number.isNaN(lngNum)) {
-      return res.status(400).json({
-        success: false,
-        message: "latitude and longitude must be valid numbers",
-      });
-    }
 
     const garage = await createGarage({
       name,

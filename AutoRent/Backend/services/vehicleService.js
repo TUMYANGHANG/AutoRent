@@ -177,6 +177,9 @@ const vehicleBelongsToOwner = async (vehicleId, ownerId) => {
   return !!row;
 };
 
+/** Default search radius when `nearby` + lat/lng are set but `radiusKm` is omitted (km). */
+const DEFAULT_NEARBY_RADIUS_KM = 1.5;
+
 /** Haversine distance in km between two points */
 const haversineKm = (lat1, lon1, lat2, lon2) => {
   const R = 6371;
@@ -193,14 +196,20 @@ const haversineKm = (lat1, lon1, lat2, lon2) => {
 /**
  * Get vehicles for rent (public): verified, status = available or rented.
  * Returns vehicles with images; rented vehicles shown with status for visibility.
- * @param {Object} [opts] - Optional: { lat, lng, radiusKm, nearby }. If nearby and lat/lng set, only vehicles with pickup location are returned, sorted by distance, with distanceKm on each.
+ * @param {Object} [opts] - Optional: { lat, lng, radiusKm, nearby }. If nearby and lat/lng set, only vehicles with pickup location are returned, sorted by distance, with distanceKm on each. If radiusKm is omitted, defaults to DEFAULT_NEARBY_RADIUS_KM (1.5 km).
  */
 const getPublicVehicles = async (opts = {}) => {
   const { lat, lng, radiusKm, nearby } = opts;
   const useNearby = !!nearby && lat != null && lng != null && !Number.isNaN(Number(lat)) && !Number.isNaN(Number(lng));
   const userLat = useNearby ? Number(lat) : null;
   const userLng = useNearby ? Number(lng) : null;
-  const maxRadius = radiusKm != null && !Number.isNaN(Number(radiusKm)) ? Number(radiusKm) : null;
+  let maxRadius =
+    radiusKm != null && radiusKm !== "" && !Number.isNaN(Number(radiusKm))
+      ? Number(radiusKm)
+      : null;
+  if (useNearby && maxRadius === null) {
+    maxRadius = DEFAULT_NEARBY_RADIUS_KM;
+  }
 
   const baseWhere = and(
     eq(vehicles.isVerified, true),

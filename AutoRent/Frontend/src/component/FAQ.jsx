@@ -5,6 +5,7 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useState } from "react";
 import { contactInquiryAPI } from "../utils/api.js";
+import { validateFaqInquiryForm } from "../utils/formValidation.js";
 
 const FAQ = () => {
   const [openIndex, setOpenIndex] = useState(0);
@@ -15,6 +16,7 @@ const FAQ = () => {
     question: "",
   });
   const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState("");
 
   const faqQuestions = [
     {
@@ -65,6 +67,7 @@ const FAQ = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    setFormError("");
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -73,6 +76,17 @@ const FAQ = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setFormError("");
+    const v = validateFaqInquiryForm({
+      name: formData.name,
+      email: formData.email,
+      question: formData.question,
+      subject: formData.subject,
+    });
+    if (v) {
+      setFormError(v);
+      return;
+    }
     setSubmitting(true);
     try {
       await contactInquiryAPI.submit({
@@ -89,9 +103,10 @@ const FAQ = () => {
         subject: "",
         question: "",
       });
+      setFormError("");
       alert("Your question has been submitted! We'll get back to you soon.");
     } catch (err) {
-      alert(err?.message || "Could not send. Please try again.");
+      setFormError(err?.message || "Could not send. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -209,6 +224,14 @@ const FAQ = () => {
             {/* Contact Form */}
             <div className="rounded-lg border border-gray-700 bg-gray-800 p-6 shadow-xl">
               <form onSubmit={handleSubmit} className="space-y-4">
+                {formError && (
+                  <div
+                    className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300"
+                    role="alert"
+                  >
+                    {formError}
+                  </div>
+                )}
                 <div>
                   <label
                     htmlFor="faq-name"

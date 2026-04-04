@@ -3,7 +3,9 @@ import {
   faClock,
   faFileInvoiceDollar,
   faMapMarkerAlt,
+  faSpinner,
   faStar,
+  faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Link } from "react-router-dom";
@@ -16,6 +18,9 @@ const RenterBookings = ({
   onOpenInvoice,
   onReviewVehicle,
   onNavigate,
+  onCancelBooking,
+  cancellingBookingId,
+  canCancelBookingStatus,
 }) => {
   return (
     <div id="my-bookings" className="mb-8 scroll-mt-8">
@@ -104,6 +109,7 @@ const RenterBookings = ({
                   type="button"
                   onClick={(e) => {
                     e.preventDefault();
+                    e.stopPropagation();
                     onOpenInvoice(b.id);
                   }}
                   className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-4 py-2 text-sm font-semibold text-white/90 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
@@ -115,6 +121,28 @@ const RenterBookings = ({
                   />
                   Invoice
                 </button>
+                {canCancelBookingStatus?.(b.status) && onCancelBooking && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onCancelBooking(b.id);
+                    }}
+                    disabled={cancellingBookingId === b.id}
+                    className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-400 transition hover:bg-red-500/20 focus:outline-none focus:ring-2 focus:ring-red-500/50 disabled:opacity-60"
+                  >
+                    {cancellingBookingId === b.id ? (
+                      <FontAwesomeIcon
+                        icon={faSpinner}
+                        className="h-4 w-4 animate-spin"
+                      />
+                    ) : (
+                      <FontAwesomeIcon icon={faXmark} className="h-4 w-4" />
+                    )}
+                    Cancel booking
+                  </button>
+                )}
                 {b.status === "completed" && b.vehicleId && (
                   <button
                     type="button"

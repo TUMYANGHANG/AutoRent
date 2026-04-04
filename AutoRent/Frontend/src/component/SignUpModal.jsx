@@ -11,6 +11,7 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useState } from "react";
 import { authAPI } from "../utils/api.js";
+import { validateOtp, validateSignUpRegister } from "../utils/formValidation.js";
 
 const SignUpModal = ({ isOpen, onClose, onSwitchToLogin }) => {
   const [step, setStep] = useState("register"); // 'register' or 'verify'
@@ -45,19 +46,15 @@ const SignUpModal = ({ isOpen, onClose, onSwitchToLogin }) => {
     setError("");
     setSuccess("");
 
-    // Validation
-    if (!formData.firstName.trim() || !formData.lastName.trim()) {
-      setError("First name and last name are required");
-      return;
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
-
-    if (formData.password.length < 8) {
-      setError("Password must be at least 8 characters long");
+    const regErr = validateSignUpRegister({
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      password: formData.password,
+      confirmPassword: formData.confirmPassword,
+    });
+    if (regErr) {
+      setError(regErr);
       return;
     }
 
@@ -94,8 +91,9 @@ const SignUpModal = ({ isOpen, onClose, onSwitchToLogin }) => {
     setError("");
     setSuccess("");
 
-    if (otp.length !== 6) {
-      setError("Please enter a valid 6-digit OTP");
+    const otpErr = validateOtp(otp, 6);
+    if (otpErr) {
+      setError(otpErr);
       return;
     }
 

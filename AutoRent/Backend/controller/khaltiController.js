@@ -13,13 +13,6 @@ export const initiateKhaltiController = async (req, res) => {
     const userId = req.user.userId;
     const { bookingId, returnUrl, websiteUrl } = req.body;
 
-    if (!bookingId || !returnUrl || !websiteUrl) {
-      return res.status(400).json({
-        success: false,
-        message: "bookingId, returnUrl, and websiteUrl are required",
-      });
-    }
-
     const [booking] = await db
       .select()
       .from(bookings)
@@ -134,13 +127,6 @@ export const initiateKhaltiController = async (req, res) => {
 export const verifyKhaltiController = async (req, res) => {
   try {
     const { pidx, purchaseOrderId } = req.body;
-
-    if (!pidx || !purchaseOrderId) {
-      return res.status(400).json({
-        success: false,
-        message: "pidx and purchaseOrderId are required",
-      });
-    }
 
     const result = await lookupPayment(pidx);
 

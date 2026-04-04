@@ -3,6 +3,7 @@ import maplibregl from "maplibre-gl";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { garagesAPI, getAuthToken } from "../utils/api.js";
+import { validateGarageCrowdForm } from "../utils/formValidation.js";
 
 // Same default styles as mapcn (CARTO basemap – no API key required)
 const CARTO_STYLES = {
@@ -322,8 +323,14 @@ const GaragesMap = () => {
     e.preventDefault();
     if (!pendingLocation) return;
 
-    if (!formData.name.trim()) {
-      setError("Garage name is required.");
+    const crowdErr = validateGarageCrowdForm({
+      name: formData.name,
+      latitude: pendingLocation.latitude,
+      longitude: pendingLocation.longitude,
+      email: formData.email,
+    });
+    if (crowdErr) {
+      setError(crowdErr);
       return;
     }
 

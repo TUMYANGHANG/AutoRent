@@ -1,0 +1,16 @@
+# AutoRent chatbot only — Rasa API (5005) + action server (5055) inside one container.
+# Usage: from this folder run: docker compose up --build
+
+services:
+  rasa:
+    build: .
+    image: autorent-rasa-chatbot:latest
+    ports:
+      - "5005:5005"
+    environment:
+      # Point to your Node/MERN API (adjust host for your deployment)
+      - AUTORENT_API_URL=${AUTORENT_API_URL:-http://host.docker.internal:5000/api}
+    extra_hosts:
+      # Lets host.docker.internal work on Linux (Docker 20.10+)
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped

@@ -10,6 +10,11 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useState } from "react";
 import { authAPI } from "../utils/api.js";
+import {
+  validateEmailField,
+  validateOtp,
+  validatePasswordStrength,
+} from "../utils/formValidation.js";
 
 const ForgotPasswordModal = ({ isOpen, onClose, onSwitchToLogin }) => {
   const [email, setEmail] = useState("");
@@ -47,6 +52,11 @@ const ForgotPasswordModal = ({ isOpen, onClose, onSwitchToLogin }) => {
   const handleResendOTP = async (e) => {
     e?.preventDefault?.();
     setError("");
+    const emailErr = validateEmailField(email);
+    if (emailErr) {
+      setError(emailErr);
+      return;
+    }
     setIsLoading(true);
     try {
       await authAPI.sendOTP(email);
@@ -87,18 +97,13 @@ const ForgotPasswordModal = ({ isOpen, onClose, onSwitchToLogin }) => {
     e.preventDefault();
     setError("");
 
-    // Validation (match backend: 8+ chars, 1 uppercase, 1 lowercase, 1 number)
-    if (newPassword.length < 8) {
-      setError("Password must be at least 8 characters long");
+    const pwErr = validatePasswordStrength(newPassword);
+    if (pwErr) {
+      setError(pwErr);
       return;
     }
-    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/.test(newPassword)) {
-      setError("Password must contain at least one uppercase letter, one lowercase letter, and one number");
-      return;
-    }
-
     if (newPassword !== confirmPassword) {
-      setError("Passwords do not match");
+      setError("Passwords do not match.");
       return;
     }
 

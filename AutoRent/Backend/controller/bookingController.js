@@ -52,22 +52,6 @@ const createBookingController = async (req, res) => {
       paymentMethod = "pay_on_pickup",
     } = req.body;
 
-    if (!vehicleId || !startDate || !returnDate || !pickupPlace) {
-      return res.status(400).json({
-        success: false,
-        message: "vehicleId, startDate, returnDate, and pickupPlace are required",
-      });
-    }
-
-    // For now only pay_on_pickup is implemented
-    const allowedMethods = ["pay_on_pickup"];
-    if (!allowedMethods.includes(paymentMethod)) {
-      return res.status(400).json({
-        success: false,
-        message: `Payment method '${paymentMethod}' is not yet available. Use 'pay_on_pickup' for now. Stripe and Khalti coming soon.`,
-      });
-    }
-
     const result = await createBookingWithPayment(
       userId,
       { vehicleId, startDate, returnDate, pickupPlace, dropoffPlace, notes },

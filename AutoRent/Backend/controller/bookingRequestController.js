@@ -44,13 +44,6 @@ const createRequestController = async (req, res) => {
     const userId = req.user.userId;
     const { vehicleId, startDate, returnDate, pickupPlace, dropoffPlace, notes } = req.body;
 
-    if (!vehicleId || !startDate || !returnDate || !pickupPlace) {
-      return res.status(400).json({
-        success: false,
-        message: "vehicleId, startDate, returnDate, and pickupPlace are required",
-      });
-    }
-
     const result = await createRequest(userId, {
       vehicleId,
       startDate,

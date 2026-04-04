@@ -85,13 +85,6 @@ const createReviewController = async (req, res) => {
     const { vehicleId } = req.params;
     const { rating, comment, bookingId } = req.body;
 
-    if (!rating) {
-      return res.status(400).json({
-        success: false,
-        message: "Rating is required",
-      });
-    }
-
     const review = await createReview(userId, vehicleId, rating, comment, bookingId);
 
     res.status(201).json({

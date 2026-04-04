@@ -1,0 +1,14 @@
+# Rebuild model inside the image (do not copy local cache / old models)
+.rasa
+models
+**/__pycache__
+*.pyc
+.git
+.gitignore
+.env
+.env.*
+*.md
+.pytest_cache
+tests
+.vscode
+.idea

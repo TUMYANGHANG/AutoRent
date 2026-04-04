@@ -1,12 +1,4 @@
-/**
- * Validate email format
- * @param {string} email - Email to validate
- * @returns {boolean} - True if valid
- */
-const isValidEmail = (email) => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-};
+import { isValidEmail } from "./validationUtils.js";
 
 /**
  * Validate password strength

@@ -66,7 +66,11 @@ const RenterDashboard = ({ user }) => {
   const [stripeLoading, setStripeLoading] = useState(false);
   const [stripeError, setStripeError] = useState(null);
   const [reviewModalBooking, setReviewModalBooking] = useState(null);
+  const [cancellingBookingId, setCancellingBookingId] = useState(null);
   const invoiceRef = useRef(null);
+
+  const canCancelBookingStatus = (status) =>
+    status === "pending" || status === "confirmed";
 
   const fullName =
     user.firstName && user.lastName
@@ -279,6 +283,40 @@ const RenterDashboard = ({ user }) => {
     }
   };
 
+  const handleCancelBooking = async (bookingId) => {
+    if (
+      !window.confirm(
+        "Cancel this booking? The owner will be notified and the vehicle may become available again for those dates.",
+      )
+    ) {
+      return;
+    }
+    setCancellingBookingId(bookingId);
+    try {
+      const res = await bookingsAPI.cancel(bookingId);
+      const updated = res?.data;
+      setBookings((prev) =>
+        prev.map((b) =>
+          b.id === bookingId
+            ? { ...b, ...(updated ? { status: updated.status } : { status: "cancelled" }) }
+            : b,
+        ),
+      );
+      setDetailsBooking((prev) =>
+        prev?.id === bookingId
+          ? {
+              ...prev,
+              status: updated?.status ?? "cancelled",
+            }
+          : prev,
+      );
+    } catch (err) {
+      alert(err?.message ?? "Could not cancel booking. Try again.");
+    } finally {
+      setCancellingBookingId(null);
+    }
+  };
+
   const renderTabContent = () => {
     switch (activeTab) {
       case TABS.overview:
@@ -300,6 +338,9 @@ const RenterDashboard = ({ user }) => {
             onOpenInvoice={handleOpenInvoice}
             onReviewVehicle={setReviewModalBooking}
             onNavigate={setActiveTab}
+            onCancelBooking={handleCancelBooking}
+            cancellingBookingId={cancellingBookingId}
+            canCancelBookingStatus={canCancelBookingStatus}
           />
         );
       case TABS.pendingRequests:
@@ -598,15 +639,17 @@ const RenterDashboard = ({ user }) => {
                       </p>
                       <span
                         className={`mt-1 inline-block rounded-full px-3 py-1 text-sm font-medium ${
-                          detailsBooking.status === "confirmed"
+                          detailsBooking.status === "pending"
                             ? "bg-sky-500/20 text-sky-400"
-                            : detailsBooking.status === "in_progress"
-                              ? "bg-amber-500/20 text-amber-400"
-                              : detailsBooking.status === "completed"
-                                ? "bg-emerald-500/20 text-emerald-400"
-                                : detailsBooking.status === "cancelled"
-                                  ? "bg-red-500/20 text-red-400"
-                                  : "bg-white/10 text-white/70"
+                            : detailsBooking.status === "confirmed"
+                              ? "bg-sky-500/20 text-sky-400"
+                              : detailsBooking.status === "in_progress"
+                                ? "bg-amber-500/20 text-amber-400"
+                                : detailsBooking.status === "completed"
+                                  ? "bg-emerald-500/20 text-emerald-400"
+                                  : detailsBooking.status === "cancelled"
+                                    ? "bg-red-500/20 text-red-400"
+                                    : "bg-white/10 text-white/70"
                         }`}
                       >
                         {detailsBooking.status?.replace("_", " ")}
@@ -709,6 +752,24 @@ const RenterDashboard = ({ user }) => {
                         />
                         Invoice
                       </button>
+                      {canCancelBookingStatus(detailsBooking.status) && (
+                        <button
+                          type="button"
+                          onClick={() => handleCancelBooking(detailsBooking.id)}
+                          disabled={cancellingBookingId === detailsBooking.id}
+                          className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-400 transition hover:bg-red-500/20 disabled:opacity-60"
+                        >
+                          {cancellingBookingId === detailsBooking.id ? (
+                            <FontAwesomeIcon
+                              icon={faSpinner}
+                              className="h-4 w-4 animate-spin"
+                            />
+                          ) : (
+                            <FontAwesomeIcon icon={faXmark} className="h-4 w-4" />
+                          )}
+                          Cancel booking
+                        </button>
+                      )}
                     </div>
                   </div>
                 ) : detailsRequest ? (

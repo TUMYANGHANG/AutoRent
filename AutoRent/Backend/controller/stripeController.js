@@ -15,13 +15,6 @@ export const initiateStripeController = async (req, res) => {
     const userId = req.user.userId;
     const { bookingId, successUrl, cancelUrl } = req.body;
 
-    if (!bookingId || !successUrl || !cancelUrl) {
-      return res.status(400).json({
-        success: false,
-        message: "bookingId, successUrl, and cancelUrl are required",
-      });
-    }
-
     const [booking] = await db
       .select()
       .from(bookings)
@@ -132,13 +125,6 @@ export const initiateStripeController = async (req, res) => {
 export const verifyStripeController = async (req, res) => {
   try {
     const { sessionId, purchaseOrderId } = req.body;
-
-    if (!sessionId || !purchaseOrderId) {
-      return res.status(400).json({
-        success: false,
-        message: "sessionId and purchaseOrderId are required",
-      });
-    }
 
     const session = await retrieveSession(sessionId);
 

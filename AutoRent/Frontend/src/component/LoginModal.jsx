@@ -8,6 +8,7 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useState } from "react";
 import { authAPI, setAuthToken } from "../utils/api.js";
+import { validateLoginForm } from "../utils/formValidation.js";
 
 const LoginModal = ({
   isOpen,
@@ -27,6 +28,11 @@ const LoginModal = ({
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    const clientErr = validateLoginForm({ email, password });
+    if (clientErr) {
+      setError(clientErr);
+      return;
+    }
     setIsLoading(true);
 
     try {

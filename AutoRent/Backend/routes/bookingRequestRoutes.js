@@ -1,5 +1,6 @@
 import express from "express";
 import { authenticateToken } from "../middleware/auth.js";
+import { validateBookingRequestCreate } from "../middleware/validators/bookingRequestValidation.js";
 import {
   approveRequestController,
   cancelRequestController,
@@ -14,7 +15,12 @@ import {
 const router = express.Router();
 router.use(authenticateToken);
 
-router.post("/booking-requests", ensureVerifiedRenter, createRequestController);
+router.post(
+  "/booking-requests",
+  ensureVerifiedRenter,
+  validateBookingRequestCreate,
+  createRequestController
+);
 router.get("/booking-requests/owner", getRequestsForOwnerController); // owner: pending requests (must be before :id)
 router.get("/booking-requests", getMyRequestsController); // renter: my requests
 router.get("/booking-requests/:id", getRequestByIdController);

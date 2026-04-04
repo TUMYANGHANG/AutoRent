@@ -7,16 +7,15 @@ import { vehicles } from "../schema/vehicle.js";
  * Transition confirmed bookings to in_progress once startDate is reached.
  */
 async function activateStartedBookings() {
-  const today = new Date().toISOString().slice(0, 10);
-
   const rows = await db
     .update(bookings)
     .set({ status: "in_progress", updatedAt: new Date() })
     .where(
       and(
         eq(bookings.status, "confirmed"),
-        // PG date column vs text param fails without cast (date <= text)
-        sql`${bookings.startDate} <= CAST(${today} AS DATE)`
+        // Use CURRENT_DATE so the comparison is valid SQL without bound params
+        // (some Drizzle + postgres-js versions fail on CAST($n AS DATE) in updates).
+        sql`${bookings.startDate} <= CURRENT_DATE`
       )
     )
     .returning({ id: bookings.id });
@@ -28,8 +27,6 @@ async function activateStartedBookings() {
  * Complete bookings whose returnDate has passed and free up vehicles.
  */
 async function completeExpiredBookings() {
-  const today = new Date().toISOString().slice(0, 10);
-
   const expired = await db
     .select({ id: bookings.id, vehicleId: bookings.vehicleId })
     .from(bookings)
@@ -39,7 +36,7 @@ async function completeExpiredBookings() {
           eq(bookings.status, "confirmed"),
           eq(bookings.status, "in_progress")
         ),
-        sql`${bookings.returnDate} <= CAST(${today} AS DATE)`
+        sql`${bookings.returnDate} <= CURRENT_DATE`
       )
     );
 
@@ -96,6 +93,7 @@ async function runBookingScheduler() {
     }
   } catch (err) {
     console.error("[BookingScheduler] Error:", err?.message || err);
+    if (err?.cause) console.error("[BookingScheduler] Cause:", err.cause);
     if (err?.stack) console.error(err.stack);
   }
 }

@@ -1,7 +1,5 @@
 import { sendContactInquiryThankYou } from "../services/emailService.js";
-import { createInquiry, deleteInquiryById, listInquiries, SOURCES } from "../services/contactInquiryService.js";
-
-const isNonEmptyString = (v) => typeof v === "string" && v.trim().length > 0;
+import { createInquiry, deleteInquiryById, listInquiries } from "../services/contactInquiryService.js";
 
 /** Delay before sending the auto thank-you email (ms). */
 const THANK_YOU_EMAIL_DELAY_MS = 60_000;
@@ -12,27 +10,6 @@ const THANK_YOU_EMAIL_DELAY_MS = 60_000;
 const createContactInquiryController = async (req, res) => {
   try {
     const { source, name, email, phone, subject, message } = req.body ?? {};
-
-    if (!SOURCES.has(source)) {
-      return res.status(400).json({
-        success: false,
-        message: "source must be one of: contact, faq, footer",
-      });
-    }
-    if (!isNonEmptyString(name)) {
-      return res.status(400).json({ success: false, message: "name is required" });
-    }
-    if (!isNonEmptyString(email)) {
-      return res.status(400).json({ success: false, message: "email is required" });
-    }
-    if (!isNonEmptyString(message)) {
-      return res.status(400).json({ success: false, message: "message is required" });
-    }
-
-    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim());
-    if (!emailOk) {
-      return res.status(400).json({ success: false, message: "invalid email" });
-    }
 
     const row = await createInquiry({
       source,

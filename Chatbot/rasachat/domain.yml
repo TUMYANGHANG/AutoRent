@@ -129,7 +129,7 @@ responses:
         2. **Select** – Choose a vehicle that fits your needs and budget.
         3. **Review** – Check the rental terms, duration, insurance options, and fuel policy.
         4. **Book** – Click "Book Now" and confirm your reservation.
-        5. **Pay** – Complete payment through Khalti.
+        5. **Pay** – After the owner approves your request, pay online with **Stripe** or **Khalti**, or choose **pay on pickup** and settle when you collect the vehicle.
         6. **Confirmation** – You'll receive a booking confirmation with all the details.
 
         Would you like me to check what vehicles are available right now?
@@ -149,11 +149,15 @@ responses:
 
   utter_ask_payment_methods:
     - text: |
-        AutoRent currently supports payment through:
+        AutoRent supports these payment options:
 
-        **Khalti** – A widely used digital payment platform in Nepal.
+        **Pay on pickup** – Pay when you collect the vehicle (cash or as agreed with the owner).
 
-        All payments are processed securely. You'll complete payment during the booking process after the owner approves your request. Would you like to know about the refund policy?
+        **Stripe** – Pay securely online by card via Stripe Checkout.
+
+        **Khalti** – Digital wallet payments popular in Nepal.
+
+        After the owner approves your booking, you complete payment in the app. Online payments are processed securely; we don't store your full card details on our servers. Would you like to know about the refund policy?
 
   utter_ask_refund_policy:
     - text: "Refund eligibility depends on the timing of your cancellation. If you cancel well before the rental start date, you're generally eligible for a full or partial refund. Cancellations close to the start date may have limited or no refund. Refunds are processed through the original payment method and may take a few business days. For specific details about your booking, check **My Bookings** or contact support."
@@ -196,7 +200,7 @@ responses:
         Make sure the image is clear and all details are readable. We only use your documents for identity verification.
 
   utter_ask_security_privacy:
-    - text: "Your data security is a priority at AutoRent. We use **HTTPS encryption** for all communications and **JWT-based authentication** for secure sessions. Your personal documents are stored securely via Cloudinary. We never share your data with unauthorized parties. Payment information is handled by Khalti's trusted payment gateway and is not stored on our servers."
+    - text: "Your data security is a priority at AutoRent. We use **HTTPS encryption** for all communications and **JWT-based authentication** for secure sessions. Your personal documents are stored securely via Cloudinary. We never share your data with unauthorized parties. Card payments go through **Stripe**; wallet payments go through **Khalti** — we don't store full card or wallet credentials on our servers."
 
   utter_ask_pricing_model:
     - text: |

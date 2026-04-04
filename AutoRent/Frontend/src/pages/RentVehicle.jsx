@@ -20,6 +20,9 @@ const formatPrice = (value) => {
   return Number.isNaN(n) ? "—" : `₹${n.toLocaleString()}`;
 };
 
+/** Must match backend DEFAULT_NEARBY_RADIUS_KM in vehicleService.js */
+const NEARBY_RADIUS_KM = 1.5;
+
 export const VehicleCard = ({ vehicle, isFavorite = false, onFavoriteClick }) => {
   const imageUrl =
     Array.isArray(vehicle.images) && vehicle.images[0] != null
@@ -240,7 +243,7 @@ const RentVehicle = () => {
         const lng = pos.coords.longitude;
         setUserLocation({ lat, lng });
         setNearbyMode(true);
-        fetchVehicles({ lat, lng, nearby: true });
+        fetchVehicles({ lat, lng, nearby: true, radiusKm: NEARBY_RADIUS_KM });
         setLocationLoading(false);
       },
       (err) => {
@@ -421,6 +424,11 @@ const RentVehicle = () => {
               )}
             </div>
           </div>
+          {nearbyMode && (
+            <p className="mt-3 text-xs text-white/50">
+              Showing nearest pickups within {NEARBY_RADIUS_KM} km (sorted by distance).
+            </p>
+          )}
         </div>
       </section>
 
@@ -454,12 +462,12 @@ const RentVehicle = () => {
             />
             <h2 className="mt-4 text-xl font-semibold text-white">
               {nearbyMode
-                ? "No vehicles with pickup location near you"
+                ? `No vehicles with pickup within ${NEARBY_RADIUS_KM} km`
                 : "No vehicles available yet"}
             </h2>
             <p className="mt-2 text-white/70">
               {nearbyMode
-                ? "Owners can set a pickup location when listing. Try ‘Show all vehicles’ to see the full list."
+                ? `We only list pickups within ${NEARBY_RADIUS_KM} km in nearby mode. Try ‘Show all vehicles’ for the full list, or ask owners to set a pickup location.`
                 : "Verified vehicles will show up here. Check back soon."}
             </p>
             {nearbyMode && (

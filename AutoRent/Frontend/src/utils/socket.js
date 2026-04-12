@@ -28,7 +28,8 @@ export const getSocket = () => {
   socket = io(base, {
     auth: { token },
     autoConnect: true,
-    transports: ["websocket"],
+    // Polling fallback helps when websocket-only fails (corporate proxies, some hosts).
+    transports: ["websocket", "polling"],
   });
 
   return socket;

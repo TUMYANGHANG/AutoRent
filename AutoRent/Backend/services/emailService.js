@@ -1,34 +1,105 @@
-import "dotenv/config";
 import sgMail from "@sendgrid/mail";
+import "dotenv/config";
+import { OTP_EXPIRY_MINUTES } from "./otpService.js";
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+const API_KEY = process.env.SENDGRID_API_KEY?.trim();
+if (API_KEY) {
+  sgMail.setApiKey(API_KEY);
+}
 
-const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
- * Verify SendGrid configuration at startup.
- * Sends a no-op request to confirm the API key is valid.
+ * Parse SENDGRID_FROM_EMAIL: "you@domain.com" or "AutoRent <you@domain.com>".
+ * SendGrid expects { email, name } — a single string with angle brackets is unreliable.
+ */
+function parseSendGridFrom(value) {
+  if (!value || typeof value !== "string") return null;
+  const trimmed = value.trim();
+  const angle = trimmed.match(/^(.+?)\s*<([^>]+)>$/);
+  if (angle) {
+    const name = angle[1].trim().replace(/^["']|["']$/g, "");
+    const email = angle[2].trim();
+    if (!EMAIL_RE.test(email)) return null;
+    return { email, name };
+  }
+  if (EMAIL_RE.test(trimmed)) {
+    return { email: trimmed };
+  }
+  return null;
+}
+
+function getMailFrom() {
+  const parsed = parseSendGridFrom(process.env.SENDGRID_FROM_EMAIL);
+  if (!parsed) {
+    throw new Error(
+      "Invalid SENDGRID_FROM_EMAIL — use an email or \"Name <email@domain.com>\" (sender must be verified in SendGrid)"
+    );
+  }
+  return parsed.name
+    ? { email: parsed.email, name: parsed.name }
+    : parsed.email;
+}
+
+/**
+ * Verify SendGrid: env present, from-address parseable, API key accepted by SendGrid.
  */
 const verifyMailConnection = async () => {
-  if (!process.env.SENDGRID_API_KEY) {
+  if (!API_KEY) {
     throw new Error("SENDGRID_API_KEY is not set");
   }
-  if (!FROM_EMAIL) {
-    throw new Error("SENDGRID_FROM_EMAIL is not set");
+  getMailFrom();
+
+  const res = await fetch("https://api.sendgrid.com/v3/user/profile", {
+    headers: { Authorization: `Bearer ${API_KEY}` },
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(
+      `SendGrid rejected this API key (HTTP ${res.status}). Check the key in SendGrid → API Keys. ${body.slice(0, 160)}`
+    );
   }
+  const from = parseSendGridFrom(process.env.SENDGRID_FROM_EMAIL);
+  console.log(
+    `[Email] SendGrid OK — sending as ${from?.name ? `"${from.name}" ` : ""}<${from?.email}>`
+  );
 };
 
-const SEND_TIMEOUT_MS = 15_000;
+const SEND_TIMEOUT_MS = (() => {
+  const v = Number(process.env.SEND_TIMEOUT_MS);
+  if (Number.isFinite(v) && v >= 5_000 && v <= 60_000) return Math.floor(v);
+  return 30_000; // enforce max wait target for send request
+})();
 
 /**
  * Internal helper – send a single email via SendGrid with a timeout guard.
  */
-const send = async (to, subject, html, text) => {
+const send = async (to, subject, html, text, options = {}) => {
   console.log(`[Email] Sending "${subject}" to ${to}…`);
   const start = Date.now();
 
   try {
-    const sendPromise = sgMail.send({ to, from: FROM_EMAIL, subject, html, text });
+    const from = getMailFrom();
+    const msg = {
+      to,
+      from,
+      subject,
+      html,
+      text,
+      // Default: transactional-style (callers can override via options).
+      trackingSettings: {
+        clickTracking: { enable: false, enableText: false },
+        openTracking: { enable: false },
+      },
+      headers: {
+        "X-Priority": "1",
+        "X-MSMail-Priority": "High",
+        Importance: "High",
+        "X-Auto-Response-Suppress": "All",
+      },
+      ...options,
+    };
+    const sendPromise = sgMail.send(msg);
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error("SendGrid request timed out")), SEND_TIMEOUT_MS)
     );
@@ -49,65 +120,74 @@ const send = async (to, subject, html, text) => {
 /**
  * Send OTP email to user
  */
+const otpSendOptions = {
+  // Helps SendGrid treat the message as transactional (and can improve inbox timing vs marketing).
+  categories: ["otp"],
+  mailSettings: {
+    bypassListManagement: { enable: true },
+  },
+};
+
 const sendOTPEmail = async (email, otp) => {
-  const subject = "Email Verification - AutoRent";
+  // Avoid putting the raw code in the subject — some providers score that as spam/phish.
+  const subject = "Your AutoRent verification code";
   const html = `
     <!DOCTYPE html>
     <html>
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Email Verification</title>
+      <title>Your OTP Code</title>
     </head>
-    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="background-color: #f4f4f4; padding: 20px; border-radius: 5px;">
-        <h2 style="color: #333; margin-top: 0;">Welcome to AutoRent!</h2>
-        <p>Thank you for registering with AutoRent. Please verify your email address by entering the OTP code below:</p>
-        <div style="background-color: #fff; padding: 20px; border-radius: 5px; text-align: center; margin: 20px 0;">
-          <h1 style="color: #007bff; font-size: 32px; letter-spacing: 5px; margin: 0;">${otp}</h1>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #111; max-width: 560px; margin: 0 auto; padding: 20px;">
+      <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px;">
+        <h2 style="color: #111; margin-top: 0;">AutoRent verification code</h2>
+        <p>Use this one-time password to verify your email:</p>
+        <div style="background-color: #f9fafb; padding: 16px; border-radius: 6px; text-align: center; margin: 16px 0;">
+          <h1 style="color: #111; font-size: 32px; letter-spacing: 6px; margin: 0;">${otp}</h1>
         </div>
-        <p>This OTP will expire in 10 minutes.</p>
-        <p>If you didn't create an account with AutoRent, please ignore this email.</p>
-        <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
-        <p style="color: #666; font-size: 12px;">This is an automated email, please do not reply.</p>
+        <p>This OTP will expire in ${OTP_EXPIRY_MINUTES} minutes.</p>
+        <p>If you did not request this code, ignore this email.</p>
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 18px 0;">
+        <p style="color: #6b7280; font-size: 12px;">Automated transactional message from AutoRent.</p>
       </div>
     </body>
     </html>
   `;
-  const text = `Welcome to AutoRent!\n\nYour OTP: ${otp}\n\nThis OTP will expire in 10 minutes.\n\nIf you didn't create an account with AutoRent, please ignore this email.`;
-  return send(email, subject, html, text);
+  const text = `AutoRent verification code\n\nOTP: ${otp}\n\nThis OTP will expire in ${OTP_EXPIRY_MINUTES} minutes.\n\nIf you did not request this code, ignore this email.`;
+  return send(email, subject, html, text, otpSendOptions);
 };
 
 /**
  * Send password reset OTP email
  */
 const sendPasswordResetOTPEmail = async (email, otp) => {
-  const subject = "Password Reset - AutoRent";
+  const subject = "AutoRent password reset — verification code";
   const html = `
     <!DOCTYPE html>
     <html>
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Password Reset</title>
+      <title>Password reset code</title>
     </head>
-    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="background-color: #f4f4f4; padding: 20px; border-radius: 5px;">
-        <h2 style="color: #333; margin-top: 0;">Reset Your Password</h2>
-        <p>You requested a password reset for your AutoRent account. Use the OTP code below to set a new password:</p>
-        <div style="background-color: #fff; padding: 20px; border-radius: 5px; text-align: center; margin: 20px 0;">
-          <h1 style="color: #f97316; font-size: 32px; letter-spacing: 5px; margin: 0;">${otp}</h1>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #111; max-width: 560px; margin: 0 auto; padding: 20px;">
+      <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px;">
+        <h2 style="color: #111; margin-top: 0;">AutoRent password reset code</h2>
+        <p>Use this one-time password to reset your password:</p>
+        <div style="background-color: #f9fafb; padding: 16px; border-radius: 6px; text-align: center; margin: 16px 0;">
+          <h1 style="color: #111; font-size: 32px; letter-spacing: 6px; margin: 0;">${otp}</h1>
         </div>
-        <p>This OTP will expire in 10 minutes.</p>
-        <p>If you didn't request a password reset, please ignore this email.</p>
-        <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
-        <p style="color: #666; font-size: 12px;">This is an automated email, please do not reply.</p>
+        <p>This OTP will expire in ${OTP_EXPIRY_MINUTES} minutes.</p>
+        <p>If you did not request this code, ignore this email.</p>
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 18px 0;">
+        <p style="color: #6b7280; font-size: 12px;">Automated transactional message from AutoRent.</p>
       </div>
     </body>
     </html>
   `;
-  const text = `Reset Your Password - AutoRent\n\nOTP: ${otp}\n\nThis OTP will expire in 10 minutes.\n\nIf you didn't request a password reset, please ignore this email.`;
-  return send(email, subject, html, text);
+  const text = `AutoRent password reset code\n\nOTP: ${otp}\n\nThis OTP will expire in ${OTP_EXPIRY_MINUTES} minutes.\n\nIf you did not request this code, ignore this email.`;
+  return send(email, subject, html, text, otpSendOptions);
 };
 
 /**
@@ -217,5 +297,6 @@ export {
   sendPasswordResetOTPEmail,
   sendVehicleApprovedToOwner,
   sendVehicleRejectedToOwner,
-  verifyMailConnection,
+  verifyMailConnection
 };
+

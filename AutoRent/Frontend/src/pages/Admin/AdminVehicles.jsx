@@ -211,24 +211,24 @@ const AdminVehicles = () => {
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
                       <p className="text-sm font-medium text-[#555555]">
-                        Make / Model
+                        Brand / Model
                       </p>
                       <p className="font-semibold text-black">
-                        {detailVehicle.make} {detailVehicle.model}
+                        {detailVehicle.brand} {detailVehicle.model}
                       </p>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-[#555555]">Year</p>
                       <p className="font-semibold text-black">
-                        {detailVehicle.year}
+                        {detailVehicle.manufactureYear}
                       </p>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-[#555555]">
-                        License plate
+                        License number
                       </p>
                       <p className="font-semibold text-black">
-                        {detailVehicle.licensePlate}
+                        {detailVehicle.licenseNumber ?? "—"}
                       </p>
                     </div>
                     <div>

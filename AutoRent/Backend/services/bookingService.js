@@ -1,6 +1,10 @@
 import { and, count, desc, eq, gte, inArray, lte, ne, or, sql } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { bookings, payments, users, vehicles } from "../schema/index.js";
+import {
+  createNotification,
+  NOTIFICATION_TYPES,
+} from "./notificationService.js";
 
 /**
  * Check if vehicle has overlapping bookings in date range (pending or confirmed).
@@ -196,7 +200,7 @@ const getBookingById = async (bookingId, userId, userRole) => {
  */
 const getBookingsForUser = async (userId, role) => {
   const col = role === "owner" ? bookings.ownerId : bookings.renterId;
-  const list = await db
+  const rows = await db
     .select({
       id: bookings.id,
       vehicleId: bookings.vehicleId,
@@ -207,14 +211,17 @@ const getBookingsForUser = async (userId, role) => {
       pickupPlace: bookings.pickupPlace,
       status: bookings.status,
       createdAt: bookings.createdAt,
+      paymentId: payments.id,
+      paymentStatus: payments.status,
     })
     .from(bookings)
+    .leftJoin(payments, eq(payments.bookingId, bookings.id))
     .where(eq(col, userId))
     .orderBy(desc(bookings.createdAt));
 
-  if (list.length === 0) return [];
+  if (rows.length === 0) return [];
 
-  const vehicleIds = [...new Set(list.map((b) => b.vehicleId))];
+  const vehicleIds = [...new Set(rows.map((b) => b.vehicleId))];
   const vehicleList = await db
     .select({
       id: vehicles.id,
@@ -227,10 +234,17 @@ const getBookingsForUser = async (userId, role) => {
 
   const vehiclesById = Object.fromEntries(vehicleList.map((v) => [v.id, v]));
 
-  return list.map((b) => ({
-    ...b,
-    vehicle: vehiclesById[b.vehicleId] || null,
-  }));
+  return rows.map((b) => {
+    const { paymentId, paymentStatus, ...rest } = b;
+    return {
+      ...rest,
+      vehicle: vehiclesById[b.vehicleId] || null,
+      payment:
+        paymentId != null
+          ? { id: paymentId, status: paymentStatus }
+          : null,
+    };
+  });
 };
 
 /**
@@ -253,6 +267,20 @@ const cancelBooking = async (bookingId, userId, userRole) => {
   if (row.status !== "pending" && row.status !== "confirmed") {
     const err = new Error("Booking cannot be cancelled in its current state");
     err.code = "INVALID_STATE";
+    throw err;
+  }
+
+  const [payRow] = await db
+    .select({ status: payments.status })
+    .from(payments)
+    .where(eq(payments.bookingId, bookingId))
+    .limit(1);
+
+  if (payRow?.status === "paid") {
+    const err = new Error(
+      "This booking cannot be cancelled because payment has already been completed."
+    );
+    err.code = "PAYMENT_PAID";
     throw err;
   }
 
@@ -283,6 +311,35 @@ const cancelBooking = async (bookingId, userId, userRole) => {
       .update(vehicles)
       .set({ status: "available", updatedAt: new Date() })
       .where(eq(vehicles.id, row.vehicleId));
+  }
+
+  if (isRenter && updated) {
+    try {
+      const [renter] = await db
+        .select({
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+        })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+      const renterName = renter
+        ? [renter.firstName, renter.lastName].filter(Boolean).join(" ").trim() ||
+          renter.email ||
+          "A renter"
+        : "A renter";
+      await createNotification({
+        recipientUserId: row.ownerId,
+        type: NOTIFICATION_TYPES.BOOKING_CANCELLED_BY_RENTER,
+        title: "Booking cancelled by renter",
+        message: `${renterName} cancelled their booking for your vehicle.`,
+        vehicleId: row.vehicleId,
+        actorUserId: userId,
+      });
+    } catch (err) {
+      console.error("Failed to notify owner of booking cancellation:", err?.message ?? err);
+    }
   }
 
   return updated;
@@ -584,9 +641,9 @@ const getAllBookingsForAdmin = async () => {
     },
     payment: r.paymentAmount
       ? {
-          amount: r.paymentAmount,
-          status: r.paymentStatus,
-        }
+        amount: r.paymentAmount,
+        status: r.paymentStatus,
+      }
       : null,
   }));
 };
@@ -599,6 +656,6 @@ export {
   getBookingsForUser,
   getOwnerEarningsReport,
   getOwnerStats,
-  hasOverlappingBooking,
+  hasOverlappingBooking
 };
 

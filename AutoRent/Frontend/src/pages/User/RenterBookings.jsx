@@ -20,7 +20,7 @@ const RenterBookings = ({
   onNavigate,
   onCancelBooking,
   cancellingBookingId,
-  canCancelBookingStatus,
+  canCancelBooking,
 }) => {
   return (
     <div id="my-bookings" className="mb-8 scroll-mt-8">
@@ -121,7 +121,7 @@ const RenterBookings = ({
                   />
                   Invoice
                 </button>
-                {canCancelBookingStatus?.(b.status) && onCancelBooking && (
+                {canCancelBooking?.(b) && onCancelBooking && (
                   <button
                     type="button"
                     onClick={(e) => {

@@ -87,11 +87,20 @@ const addVehicleController = async (req, res) => {
       });
     }
 
+    const licenseNumber = req.body.licenseNumber != null ? String(req.body.licenseNumber).trim() : "";
+    if (!licenseNumber) {
+      return res.status(400).json({
+        success: false,
+        message: "License number (registration plate) is required",
+      });
+    }
+
     const vehicle = await createVehicle(
       userId,
       {
         brand: req.body.brand,
         model: req.body.model,
+        licenseNumber,
         vehicleType: req.body.vehicleType,
         manufactureYear: req.body.manufactureYear,
         color: req.body.color,

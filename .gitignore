@@ -33,3 +33,5 @@ yarn-error.log*
 collector
 .collector
 
+# hugging face repo push
+autorent-chatbot/

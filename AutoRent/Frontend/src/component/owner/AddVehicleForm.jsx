@@ -7,6 +7,7 @@ import PickupLocationMap from "./PickupLocationMap.jsx";
 const INITIAL_FORM = {
   brand: "",
   model: "",
+  licenseNumber: "",
   vehicleType: "",
   manufactureYear: "",
   color: "",
@@ -118,6 +119,7 @@ const AddVehicleForm = ({ onSuccess, onCancel }) => {
       const payload = {
         brand: form.brand.trim(),
         model: form.model.trim(),
+        licenseNumber: form.licenseNumber.trim().slice(0, 50),
         vehicleType: form.vehicleType?.trim() || undefined,
         manufactureYear,
         color: form.color?.trim() || undefined,
@@ -223,6 +225,23 @@ const AddVehicleForm = ({ onSuccess, onCancel }) => {
               maxLength={100}
             />
           </div>
+        </div>
+
+        <div>
+          <label htmlFor="licenseNumber" className="mb-1.5 block text-sm font-medium text-slate-700">
+            License number (registration plate) <span className="text-red-500">*</span>
+          </label>
+          <input
+            id="licenseNumber"
+            name="licenseNumber"
+            type="text"
+            value={form.licenseNumber}
+            onChange={handleChange}
+            placeholder="e.g. BA 1 PA 1234"
+            className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-900 placeholder-slate-400 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+            maxLength={50}
+            autoComplete="off"
+          />
         </div>
 
         <div className="grid gap-6 sm:grid-cols-2">

@@ -177,6 +177,12 @@ nlu:
     - any [SUV](vehicle_type) available in [Biratnagar](location)?
     - find me a [bike](vehicle_type) in [Butwal](location)
     - list available vehicles
+    - give me available vehicles
+    - give me the available vehicles
+    - give me the available vehicle
+    - show me available vechile
+    - available vechile
+    - what vehicles can i get now
 
 - intent: request_vehicle_options
   examples: |

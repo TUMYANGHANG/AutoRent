@@ -222,13 +222,21 @@ const cancelBookingController = async (req, res) => {
       });
     }
 
+    let message = "Booking cancelled successfully.";
+    if (role === "renter") {
+      message =
+        "Your booking was cancelled. The vehicle owner has been notified.";
+    } else if (role === "owner") {
+      message = "The booking has been cancelled.";
+    }
+
     res.status(200).json({
       success: true,
-      message: "Booking cancelled",
+      message,
       data: updated,
     });
   } catch (error) {
-    if (error.code === "INVALID_STATE") {
+    if (error.code === "INVALID_STATE" || error.code === "PAYMENT_PAID") {
       return res.status(400).json({ success: false, message: error.message });
     }
     console.error("Cancel booking error:", error);
@@ -247,5 +255,6 @@ export {
   getBookingByIdController,
   getBookingsController,
   getOwnerEarningsReportController,
-  getOwnerStatsController,
+  getOwnerStatsController
 };
+

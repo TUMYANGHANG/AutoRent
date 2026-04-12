@@ -3,6 +3,32 @@ import { db } from "../db/index.js";
 import { bookings } from "../schema/booking.js";
 import { vehicles } from "../schema/vehicle.js";
 
+const RETRY_DELAY_MS = 2000;
+
+/** Network / pool errors that often succeed on a fresh connection */
+function isTransientDbError(err) {
+  if (!err) return false;
+  const codes = new Set();
+  const visit = (e, depth) => {
+    if (!e || depth > 8) return;
+    if (e.code) codes.add(e.code);
+    if (e.cause) visit(e.cause, depth + 1);
+    if (Array.isArray(e.errors)) e.errors.forEach((x) => visit(x, depth + 1));
+  };
+  visit(err, 0);
+  for (const c of [
+    "ETIMEDOUT",
+    "ECONNRESET",
+    "ECONNREFUSED",
+    "EPIPE",
+    "ENOTFOUND",
+  ]) {
+    if (codes.has(c)) return true;
+  }
+  const msg = String(err.message || "").toLowerCase();
+  return msg.includes("timeout") || msg.includes("connection terminated");
+}
+
 /**
  * Transition confirmed bookings to in_progress once startDate is reached.
  */
@@ -83,7 +109,7 @@ async function completeExpiredBookings() {
  * Run all scheduled booking transitions. Call this on a timer.
  */
 async function runBookingScheduler() {
-  try {
+  const tick = async () => {
     const activated = await activateStartedBookings();
     const completed = await completeExpiredBookings();
     if (activated > 0 || completed > 0) {
@@ -91,10 +117,24 @@ async function runBookingScheduler() {
         `[BookingScheduler] ${activated} booking(s) activated, ${completed} booking(s) completed`
       );
     }
+  };
+
+  try {
+    await tick();
   } catch (err) {
-    console.error("[BookingScheduler] Error:", err?.message || err);
-    if (err?.cause) console.error("[BookingScheduler] Cause:", err.cause);
-    if (err?.stack) console.error(err.stack);
+    if (!isTransientDbError(err)) {
+      console.error("[BookingScheduler] Error:", err?.message || err);
+      return;
+    }
+    await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+    try {
+      await tick();
+    } catch (err2) {
+      console.warn(
+        "[BookingScheduler] DB still unavailable after retry:",
+        err2?.message || err2
+      );
+    }
   }
 }
 

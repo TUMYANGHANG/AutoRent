@@ -12,6 +12,7 @@ const EditVehicleForm = ({ vehicle, onSuccess, onCancel }) => {
   const [form, setForm] = useState({
     brand: "",
     model: "",
+    licenseNumber: "",
     vehicleType: "",
     manufactureYear: "",
     color: "",
@@ -36,6 +37,7 @@ const EditVehicleForm = ({ vehicle, onSuccess, onCancel }) => {
       setForm({
         brand: vehicle.brand ?? "",
         model: vehicle.model ?? "",
+        licenseNumber: vehicle.licenseNumber ?? "",
         vehicleType: vehicle.vehicleType ?? "",
         manufactureYear: vehicle.manufactureYear ?? "",
         color: vehicle.color ?? "",
@@ -78,6 +80,10 @@ const EditVehicleForm = ({ vehicle, onSuccess, onCancel }) => {
     }
     if (!form.model?.trim()) {
       setError("Model is required.");
+      return;
+    }
+    if (!form.licenseNumber?.trim()) {
+      setError("License number (registration plate) is required.");
       return;
     }
     if (!manufactureYear || manufactureYear < 1900 || manufactureYear > new Date().getFullYear() + 1) {
@@ -175,6 +181,23 @@ const EditVehicleForm = ({ vehicle, onSuccess, onCancel }) => {
               maxLength={100}
             />
           </div>
+        </div>
+
+        <div>
+          <label htmlFor="edit-licenseNumber" className="mb-1.5 block text-sm font-medium text-slate-700">
+            License number (registration plate) <span className="text-red-500">*</span>
+          </label>
+          <input
+            id="edit-licenseNumber"
+            name="licenseNumber"
+            type="text"
+            value={form.licenseNumber}
+            onChange={handleChange}
+            placeholder="e.g. BA 1 PA 1234"
+            className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-900 placeholder-slate-400 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+            maxLength={50}
+            autoComplete="off"
+          />
         </div>
 
         <div className="grid gap-6 sm:grid-cols-2">

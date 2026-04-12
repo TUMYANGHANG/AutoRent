@@ -1,0 +1,1 @@
+ALTER TABLE "vehicles" ADD COLUMN "license_number" varchar(50);

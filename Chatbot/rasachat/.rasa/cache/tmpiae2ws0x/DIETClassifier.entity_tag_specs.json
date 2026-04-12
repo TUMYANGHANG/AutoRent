@@ -1,0 +1,36 @@
+[
+  {
+    "tag_name": "entity",
+    "ids_to_tags": {
+      "1": "B-booking_id",
+      "2": "I-booking_id",
+      "3": "L-booking_id",
+      "4": "U-booking_id",
+      "5": "B-location",
+      "6": "I-location",
+      "7": "L-location",
+      "8": "U-location",
+      "9": "B-vehicle_type",
+      "10": "I-vehicle_type",
+      "11": "L-vehicle_type",
+      "12": "U-vehicle_type",
+      "0": "O"
+    },
+    "tags_to_ids": {
+      "B-booking_id": 1,
+      "I-booking_id": 2,
+      "L-booking_id": 3,
+      "U-booking_id": 4,
+      "B-location": 5,
+      "I-location": 6,
+      "L-location": 7,
+      "U-location": 8,
+      "B-vehicle_type": 9,
+      "I-vehicle_type": 10,
+      "L-vehicle_type": 11,
+      "U-vehicle_type": 12,
+      "O": 0
+    },
+    "num_tags": 13
+  }
+]

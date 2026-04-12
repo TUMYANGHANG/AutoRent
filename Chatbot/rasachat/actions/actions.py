@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 import requests
@@ -7,15 +8,54 @@ from rasa_sdk import Action, Tracker
 from rasa_sdk.executor import CollectingDispatcher
 from rasa_sdk.events import SlotSet
 
-AUTORENT_API = os.getenv("AUTORENT_API_URL", "http://localhost:5002/api")
-REQUEST_TIMEOUT = 10
+logger = logging.getLogger(__name__)
+
+# Local dev: same port as AutoRent Backend (npm run dev). No .env file — use shell env if you need a different URL.
+REQUEST_TIMEOUT = int(os.getenv("AUTORENT_REQUEST_TIMEOUT", "60"))
+
+
+def normalize_autorent_api_url(raw: Optional[str]) -> str:
+    """
+    Backend mounts routes under /api. Host-only URLs get /api appended
+    (e.g. http://localhost:5002 → http://localhost:5002/api).
+    """
+    # 127.0.0.1 avoids occasional IPv6 localhost (::1) mismatches on Windows
+    fallback = "http://127.0.0.1:5002/api"
+    if raw is None or not str(raw).strip():
+        return fallback
+    base = str(raw).strip().rstrip("/")
+    if not base:
+        return fallback
+    if base.lower().endswith("/api"):
+        return base
+    return f"{base}/api"
+
+
+# Default: local backend. Optional: set AUTORENT_API_URL in the shell before `rasa run actions` (no .env file required).
+AUTORENT_API = normalize_autorent_api_url(os.getenv("AUTORENT_API_URL"))
+logger.info("AutoRent action server: API base is %s", AUTORENT_API)
 
 UUID_PATTERN = re.compile(r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
 
 
 def _get_token(tracker: Tracker) -> Optional[str]:
-    metadata = tracker.latest_message.get("metadata") or {}
-    return metadata.get("token") or metadata.get("auth_token")
+    """JWT from ChatBot.jsx metadata — check latest message and recent user events."""
+    def pick(meta: Any) -> Optional[str]:
+        if not isinstance(meta, dict):
+            return None
+        return meta.get("token") or meta.get("auth_token")
+
+    msg = tracker.latest_message or {}
+    t = pick(msg.get("metadata"))
+    if t:
+        return t
+    for evt in reversed(tracker.events or []):
+        if evt.get("event") != "user":
+            continue
+        t = pick(evt.get("metadata"))
+        if t:
+            return t
+    return None
 
 
 def _extract_booking_id(tracker: Tracker) -> Optional[str]:
@@ -50,6 +90,22 @@ def _api_patch(path: str, token: str, json_body: dict = None):
     )
 
 
+def _vehicle_list_from_browse_response(resp: requests.Response) -> Optional[List[dict]]:
+    """Parse GET /vehicles/browse JSON; returns None if not a successful vehicle list."""
+    if resp.status_code != 200:
+        return None
+    try:
+        body = resp.json()
+    except ValueError:
+        logger.warning("Browse response was not JSON (status %s)", resp.status_code)
+        return None
+    data = body.get("data")
+    if isinstance(data, list):
+        return data
+    logger.warning("Browse JSON missing list in 'data': keys=%s", list(body.keys()) if isinstance(body, dict) else type(body))
+    return []
+
+
 NO_AUTH_MSG = (
     "It looks like you're not logged in. To access your bookings and perform "
     "actions, please **log in** to your AutoRent account first, then come back "
@@ -81,9 +137,20 @@ class ActionCheckAvailability(Action):
 
         try:
             resp = _api_get("/vehicles/browse")
-            if resp.status_code == 200:
-                vehicles = resp.json().get("data", [])
+            vehicles = _vehicle_list_from_browse_response(resp)
 
+            if vehicles is None:
+                logger.warning(
+                    "GET %s/vehicles/browse failed: status=%s body=%s",
+                    AUTORENT_API,
+                    resp.status_code,
+                    (resp.text or "")[:300],
+                )
+                dispatcher.utter_message(
+                    text="I'm having trouble fetching vehicle data right now. "
+                    "Please try the **Vehicle Listings** page directly."
+                )
+            else:
                 if vehicle_type:
                     vt = vehicle_type.lower()
                     vehicles = [
@@ -113,12 +180,18 @@ class ActionCheckAvailability(Action):
                     msg += ":\n\n"
 
                     for v in top:
-                        line = f"- **{v['brand']} {v['model']}**"
+                        brand = v.get("brand") or ""
+                        model = v.get("model") or ""
+                        line = f"- **{brand} {model}**".strip()
                         if v.get("vehicleType"):
                             line += f" ({v['vehicleType']})"
-                        line += f" — Rs. {v['pricePerDay']}/day"
-                        if v.get("averageRating"):
-                            line += f" | Rating: {float(v['averageRating']):.1f}/5"
+                        ppd = v.get("pricePerDay")
+                        line += f" — Rs. {ppd}/day" if ppd is not None else ""
+                        if v.get("averageRating") is not None:
+                            try:
+                                line += f" | Rating: {float(v['averageRating']):.1f}/5"
+                            except (TypeError, ValueError):
+                                pass
                         msg += line + "\n"
 
                     remaining = len(vehicles) - 5
@@ -129,11 +202,6 @@ class ActionCheckAvailability(Action):
                         "and book your preferred vehicle."
                     )
                     dispatcher.utter_message(text=msg)
-            else:
-                dispatcher.utter_message(
-                    text="I'm having trouble fetching vehicle data right now. "
-                    "Please try the **Vehicle Listings** page directly."
-                )
         except requests.exceptions.RequestException:
             dispatcher.utter_message(text=API_DOWN_MSG)
 
@@ -155,8 +223,8 @@ class ActionFetchVehicleOptions(Action):
     ) -> List[Dict[Text, Any]]:
         try:
             resp = _api_get("/vehicles/browse")
-            if resp.status_code == 200:
-                vehicles = resp.json().get("data", [])
+            vehicles = _vehicle_list_from_browse_response(resp)
+            if vehicles is not None:
                 type_counts: Dict[str, int] = {}
                 type_price_min: Dict[str, float] = {}
 
@@ -189,6 +257,10 @@ class ActionFetchVehicleOptions(Action):
                     )
                     dispatcher.utter_message(text=msg)
             else:
+                logger.warning(
+                    "action_fetch_vehicle_options: browse failed status=%s",
+                    resp.status_code,
+                )
                 dispatcher.utter_message(
                     text="I'm having trouble fetching vehicle data right now. "
                     "Please visit the **Vehicle Listings** page directly."
@@ -216,9 +288,9 @@ class ActionFetchPriceEstimate(Action):
 
         try:
             resp = _api_get("/vehicles/browse")
-            if resp.status_code == 200:
-                vehicles = resp.json().get("data", [])
+            vehicles = _vehicle_list_from_browse_response(resp)
 
+            if vehicles is not None:
                 if vehicle_type:
                     vt = vehicle_type.lower()
                     vehicles = [
@@ -237,7 +309,13 @@ class ActionFetchPriceEstimate(Action):
                     )
                     dispatcher.utter_message(text=msg)
                 else:
-                    prices = [float(v["pricePerDay"]) for v in vehicles]
+                    prices = [float(v["pricePerDay"]) for v in vehicles if v.get("pricePerDay") is not None]
+                    if not prices:
+                        dispatcher.utter_message(
+                            text="I couldn't read pricing from listings right now. "
+                            "Please check the **Vehicle Listings** page."
+                        )
+                        return [SlotSet("vehicle_type", None)]
                     min_p, max_p, avg_p = min(prices), max(prices), sum(prices) / len(prices)
 
                     if vehicle_type:
@@ -252,7 +330,9 @@ class ActionFetchPriceEstimate(Action):
 
                     if not vehicle_type:
                         type_ranges: Dict[str, list] = {}
-                        for v in resp.json().get("data", []):
+                        for v in vehicles:
+                            if v.get("pricePerDay") is None:
+                                continue
                             vt_name = v.get("vehicleType") or "Other"
                             type_ranges.setdefault(vt_name, []).append(
                                 float(v["pricePerDay"])

@@ -4,7 +4,13 @@ import jwt from "jsonwebtoken";
 import { db } from "../db/index.js";
 import { users } from "../schema/index.js";
 import { sendOTPEmail, sendPasswordResetOTPEmail } from "../services/emailService.js";
-import { createOTP, generateOTP, validateOTP, verifyOTP } from "../services/otpService.js";
+import {
+  createOTP,
+  generateOTP,
+  getOtpExpiresAt,
+  validateOTP,
+  verifyOTP,
+} from "../services/otpService.js";
 
 /**
  * Register a new user
@@ -32,7 +38,7 @@ const register = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
     const otp = generateOTP();
-    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    const otpExpiresAt = getOtpExpiresAt();
 
     const validRoles = ["renter", "owner"];
     const userRole = role && validRoles.includes(role) ? role : "renter";
@@ -51,26 +57,13 @@ const register = async (req, res) => {
       })
       .returning();
 
-    console.log(`[Register] User created (id: ${newUser.id}), sending OTP email…`);
-
-    try {
-      await sendOTPEmail(email.toLowerCase(), otp);
-      console.log(`[Register] OTP email sent to ${email}`);
-    } catch (emailError) {
-      console.error(`[Register] OTP email FAILED for ${email}:`, emailError.message);
-      return res.status(201).json({
-        success: true,
-        message: "Account created, but we couldn't send the verification email. Please use 'Resend OTP' to try again.",
-        user: {
-          id: newUser.id,
-          email: newUser.email,
-          firstName: newUser.firstName,
-          lastName: newUser.lastName,
-          role: newUser.role,
-          isEmailVerified: newUser.isEmailVerified,
-        },
-      });
-    }
+    const emailLower = email.toLowerCase();
+    console.log(`[Register] User created (id: ${newUser.id}), sending OTP email (non-blocking)…`);
+    void sendOTPEmail(emailLower, otp).then(
+      () => console.log(`[Register] OTP email sent to ${email}`),
+      (emailError) =>
+        console.error(`[Register] OTP email FAILED for ${email}:`, emailError.message)
+    );
 
     const { password: _, otp: __, otpExpiresAt: ___, ...userResponse } = newUser;
 
@@ -192,22 +185,18 @@ const resendOTP = async (req, res) => {
       });
     }
 
-    const otp = await createOTP(email.toLowerCase());
+    const emailLower = email.toLowerCase();
+    const otp = await createOTP(emailLower);
 
-    try {
-      await sendOTPEmail(email.toLowerCase(), otp);
-      console.log(`[ResendOTP] OTP sent to ${email}`);
-      res.status(200).json({
-        success: true,
-        message: "OTP sent successfully. Please check your email.",
-      });
-    } catch (emailError) {
-      console.error(`[ResendOTP] Email FAILED for ${email}:`, emailError.message);
-      res.status(500).json({
-        success: false,
-        message: "Failed to send OTP email. Please try again later.",
-      });
-    }
+    void sendOTPEmail(emailLower, otp).then(
+      () => console.log(`[ResendOTP] OTP sent to ${email}`),
+      (emailError) =>
+        console.error(`[ResendOTP] Email FAILED for ${email}:`, emailError.message)
+    );
+    res.status(200).json({
+      success: true,
+      message: "OTP sent successfully. Please check your email.",
+    });
   } catch (error) {
     console.error("[ResendOTP] Error:", error.message);
     res.status(500).json({
@@ -328,22 +317,18 @@ const forgotPassword = async (req, res) => {
       });
     }
 
-    const otp = await createOTP(email.toLowerCase());
+    const emailLower = email.toLowerCase();
+    const otp = await createOTP(emailLower);
 
-    try {
-      await sendPasswordResetOTPEmail(email.toLowerCase(), otp);
-      console.log(`[ForgotPassword] OTP sent to ${email}`);
-      res.status(200).json({
-        success: true,
-        message: "OTP has been sent to your email. Use it to reset your password.",
-      });
-    } catch (emailError) {
-      console.error(`[ForgotPassword] Email FAILED for ${email}:`, emailError.message);
-      res.status(500).json({
-        success: false,
-        message: "Failed to send OTP email. Please try again later.",
-      });
-    }
+    void sendPasswordResetOTPEmail(emailLower, otp).then(
+      () => console.log(`[ForgotPassword] OTP sent to ${email}`),
+      (emailError) =>
+        console.error(`[ForgotPassword] Email FAILED for ${email}:`, emailError.message)
+    );
+    res.status(200).json({
+      success: true,
+      message: "OTP has been sent to your email. Use it to reset your password.",
+    });
   } catch (error) {
     console.error("[ForgotPassword] Error:", error.message);
     res.status(500).json({
@@ -475,6 +460,6 @@ export {
   resendOTP,
   resetPassword,
   verifyEmail,
-  verifyOTPForReset,
+  verifyOTPForReset
 };
 

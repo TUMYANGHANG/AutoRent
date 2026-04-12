@@ -15,6 +15,7 @@ const NOTIFICATION_TYPES = {
   BOOKING_REQUEST: "booking_request",
   BOOKING_APPROVED: "booking_approved",
   BOOKING_REJECTED: "booking_rejected",
+  BOOKING_CANCELLED_BY_RENTER: "booking_cancelled_by_renter",
 };
 
 /**
@@ -48,8 +49,22 @@ const createNotification = async ({
     })
     .returning();
 
-  if (ioInstance && recipientUserId) {
-    ioInstance.to(`user:${recipientUserId}`).emit("notification:new", row);
+  if (ioInstance && recipientUserId && row) {
+    const createdAt =
+      row.createdAt instanceof Date
+        ? row.createdAt.toISOString()
+        : row.createdAt;
+    ioInstance.to(`user:${recipientUserId}`).emit("notification:new", {
+      id: row.id,
+      recipientUserId: row.recipientUserId,
+      type: row.type,
+      title: row.title,
+      message: row.message,
+      vehicleId: row.vehicleId,
+      actorUserId: row.actorUserId,
+      isRead: Boolean(row.isRead),
+      createdAt,
+    });
   }
 
   return row;

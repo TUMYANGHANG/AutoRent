@@ -25,6 +25,9 @@ const createVehicle = async (ownerId, vehicleData, imageUrls = [], documentUrls 
       ownerId,
       brand: vehicleData.brand,
       model: vehicleData.model,
+      licenseNumber: vehicleData.licenseNumber != null && String(vehicleData.licenseNumber).trim() !== ""
+        ? String(vehicleData.licenseNumber).trim().slice(0, 50)
+        : null,
       vehicleType: vehicleData.vehicleType ?? null,
       manufactureYear: vehicleData.manufactureYear,
       color: vehicleData.color ?? null,
@@ -437,6 +440,12 @@ const updateVehicle = async (vehicleId, ownerId, data) => {
   const allowed = {};
   if (data.brand !== undefined) allowed.brand = String(data.brand).trim();
   if (data.model !== undefined) allowed.model = String(data.model).trim();
+  if (data.licenseNumber !== undefined) {
+    allowed.licenseNumber =
+      data.licenseNumber === null || data.licenseNumber === ""
+        ? null
+        : String(data.licenseNumber).trim().slice(0, 50);
+  }
   if (data.vehicleType !== undefined) allowed.vehicleType = data.vehicleType === null || data.vehicleType === "" ? null : String(data.vehicleType).trim();
   if (data.manufactureYear !== undefined) allowed.manufactureYear = Number(data.manufactureYear);
   if (data.color !== undefined) allowed.color = data.color === null || data.color === "" ? null : String(data.color).trim();

@@ -51,6 +51,7 @@ const AdminDashboard = ({ user }) => {
   }, [activeSection]);
 
   useEffect(() => {
+    getSocket();
     setNotificationsLoading(true);
     notificationsAPI
       .getNotifications()
@@ -63,11 +64,19 @@ const AdminDashboard = ({ user }) => {
     const socket = getSocket();
     if (!socket) return;
 
-    const handleNewNotification = (notif) => {
-      setNotifications((prev) => [notif, ...prev]);
-      if (!notif?.isRead) {
-        setUnreadCount((c) => c + 1);
-      }
+    const refreshNotifications = () => {
+      notificationsAPI
+        .getNotifications()
+        .then((data) => setNotifications(Array.isArray(data) ? data : []))
+        .catch(() => {});
+      notificationsAPI
+        .getUnreadCount()
+        .then((n) => setUnreadCount(n))
+        .catch(() => {});
+    };
+
+    const handleNewNotification = () => {
+      refreshNotifications();
     };
 
     socket.on("notification:new", handleNewNotification);

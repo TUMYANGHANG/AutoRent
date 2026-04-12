@@ -1,19 +1,19 @@
 import {
-  faCalendarCheck,
-  faCar,
-  faCheckCircle,
-  faClock,
-  faComments,
-  faCreditCard,
-  faDownload,
-  faFileInvoiceDollar,
-  faHistory,
-  faHome,
-  faMapMarkerAlt,
-  faRightFromBracket,
-  faSpinner,
-  faUser,
-  faXmark,
+    faCalendarCheck,
+    faCar,
+    faCheckCircle,
+    faClock,
+    faComments,
+    faCreditCard,
+    faDownload,
+    faFileInvoiceDollar,
+    faHistory,
+    faHome,
+    faMapMarkerAlt,
+    faRightFromBracket,
+    faSpinner,
+    faUser,
+    faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useEffect, useRef, useState } from "react";
@@ -21,14 +21,14 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import BookingInvoice from "../../component/BookingInvoice.jsx";
 import ReviewFormModal from "../../component/ReviewFormModal.jsx";
 import {
-  bookingRequestsAPI,
-  bookingsAPI,
-  getAuthToken,
-  khaltiAPI,
-  stripeAPI,
-  removeAuthToken,
-  reviewsAPI,
-  userDetailsAPI,
+    bookingRequestsAPI,
+    bookingsAPI,
+    getAuthToken,
+    khaltiAPI,
+    removeAuthToken,
+    reviewsAPI,
+    stripeAPI,
+    userDetailsAPI,
 } from "../../utils/api.js";
 import { downloadInvoicePdf } from "../../utils/invoicePdf.js";
 import { disconnectSocket } from "../../utils/socket.js";
@@ -67,10 +67,18 @@ const RenterDashboard = ({ user }) => {
   const [stripeError, setStripeError] = useState(null);
   const [reviewModalBooking, setReviewModalBooking] = useState(null);
   const [cancellingBookingId, setCancellingBookingId] = useState(null);
+  /** Inline feedback (alerts after async fetch are often blocked by browsers). */
+  const [bookingCancelFeedback, setBookingCancelFeedback] = useState(null);
   const invoiceRef = useRef(null);
 
-  const canCancelBookingStatus = (status) =>
-    status === "pending" || status === "confirmed";
+  /** Renter may cancel only before payment is completed (pending / no row = ok; paid = not). */
+  const canCancelBooking = (booking) => {
+    if (!booking) return false;
+    const st = booking.status;
+    if (st !== "pending" && st !== "confirmed") return false;
+    if (booking.payment?.status === "paid") return false;
+    return true;
+  };
 
   const fullName =
     user.firstName && user.lastName
@@ -310,8 +318,17 @@ const RenterDashboard = ({ user }) => {
             }
           : prev,
       );
+      setBookingCancelFeedback({
+        type: "success",
+        text:
+          res?.message ??
+          "Your booking was cancelled. The vehicle owner has been notified.",
+      });
     } catch (err) {
-      alert(err?.message ?? "Could not cancel booking. Try again.");
+      setBookingCancelFeedback({
+        type: "error",
+        text: err?.message ?? "Could not cancel booking. Try again.",
+      });
     } finally {
       setCancellingBookingId(null);
     }
@@ -340,7 +357,7 @@ const RenterDashboard = ({ user }) => {
             onNavigate={setActiveTab}
             onCancelBooking={handleCancelBooking}
             cancellingBookingId={cancellingBookingId}
-            canCancelBookingStatus={canCancelBookingStatus}
+            canCancelBooking={canCancelBooking}
           />
         );
       case TABS.pendingRequests:
@@ -467,6 +484,29 @@ const RenterDashboard = ({ user }) => {
               </div>
             </div>
           ))}
+
+        {bookingCancelFeedback && (
+          <div
+            className={`mb-6 flex items-start justify-between gap-3 rounded-2xl border px-4 py-3 sm:px-5 ${
+              bookingCancelFeedback.type === "success"
+                ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-100"
+                : "border-red-500/40 bg-red-500/15 text-red-100"
+            }`}
+            role="status"
+          >
+            <p className="text-sm font-medium sm:text-base">
+              {bookingCancelFeedback.text}
+            </p>
+            <button
+              type="button"
+              onClick={() => setBookingCancelFeedback(null)}
+              className="shrink-0 rounded-lg p-1 text-current opacity-80 hover:opacity-100"
+              aria-label="Dismiss"
+            >
+              <FontAwesomeIcon icon={faXmark} className="h-5 w-5" />
+            </button>
+          </div>
+        )}
 
         {(activeTab === TABS.overview ||
           activeTab === TABS.bookings ||
@@ -752,7 +792,7 @@ const RenterDashboard = ({ user }) => {
                         />
                         Invoice
                       </button>
-                      {canCancelBookingStatus(detailsBooking.status) && (
+                      {canCancelBooking(detailsBooking) && (
                         <button
                           type="button"
                           onClick={() => handleCancelBooking(detailsBooking.id)}

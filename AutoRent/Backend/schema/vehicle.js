@@ -26,6 +26,7 @@ const vehicles = pgTable("vehicles", {
     .references(() => users.id, { onDelete: "CASCADE" }),
   brand: varchar("brand", { length: 100 }).notNull(),
   model: varchar("model", { length: 100 }).notNull(),
+  licenseNumber: varchar("license_number", { length: 50 }),
   vehicleType: varchar("vehicle_type", { length: 50 }),
   manufactureYear: integer("manufacture_year").notNull(),
   color: varchar("color", { length: 50 }),
